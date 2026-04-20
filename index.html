@@ -1,0 +1,2431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>礼遇·GoodGift - 智能礼物推荐</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        
+                        primary: '#E7F1E9',
+    primary-light': '#F3EDEE',
+    primary-dark': '#EDEBE6',
+    background: '#F8F6F2',
+    surface: '#F0ECE7',
+    muted: '#C5C0B8',
+    border: '#E5E0D8',
+    accent: '#EDEBE6',
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    * { -webkit-tap-highlight-color: transparent; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background-color: #F8F6F2;
+        padding-bottom: 80px;
+        color: #5A4F45;
+    }
+    .card-shadow {
+        background-color: #F0ECE7;
+        border-radius: 28px;
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.02), 0 2px 4px rgba(0, 0, 0, 0.01);
+        border: 1px solid rgba(229, 224, 216, 0.6);
+    }
+    .btn-soft {
+        background-color: #EDEBE6;
+        border-radius: 60px;
+        padding: 10px 20px;
+        font-weight: 500;
+        color: #5A4F45;
+        transition: all 0.2s;
+    }
+    .btn-soft:active { transform: scale(0.97); background-color: #E3DFD8; }
+    .btn-primary-soft {
+        background-color: #E7F1E9;
+        color: #4A5B4A;
+        font-weight: 600;
+        border-radius: 60px;
+        padding: 12px 20px;
+        transition: all 0.2s;
+    }
+    .btn-primary-soft:active { transform: scale(0.98); background-color: #D9E3DA; }
+    /* 保留原有 .btn-gradient 用于兼容，但改用新颜色 */
+    .btn-gradient {
+        background: linear-gradient(135deg, #E7F1E9 0%, #D9E3DA 100%);
+        border-radius: 60px;
+        padding: 12px 20px;
+        font-weight: 600;
+        color: #4A5B4A;
+        transition: all 0.2s;
+    }
+    .btn-gradient:active { transform: scale(0.98); background-color: #D9E3DA; }
+    .skeleton {
+        background: linear-gradient(90deg, #EDEBE6 25%, #F4F1EC 50%, #EDEBE6 75%);
+        background-size: 200% 100%;
+        animation: skeleton-loading 1.5s infinite;
+    }
+    @keyframes skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .fade-in { animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .bottom-nav {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        background: rgba(248, 246, 242, 0.96);
+        backdrop-filter: blur(12px);
+        border-top: 1px solid #E5E0D8;
+        z-index: 50;
+    }
+    .toast {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        background: rgba(90, 79, 69, 0.9); backdrop-filter: blur(8px);
+        color: #FEFAF5; padding: 12px 24px; border-radius: 60px;
+        z-index: 100; font-weight: 500; font-size: 0.9rem;
+    }
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(90, 79, 69, 0.2); backdrop-filter: blur(4px);
+        z-index: 60; display: flex; align-items: center; justify-content: center;
+    }
+    .modal-content {
+        background: #FEFCF8; border-radius: 40px; padding: 28px;
+        max-width: 90%; max-height: 80vh; overflow-y: auto;
+        box-shadow: 0 20px 40px -12px rgba(0,0,0,0.1);
+        border: 1px solid rgba(229, 224, 216, 0.6);
+    }
+    .recording { animation: pulse-soft 1.5s infinite; }
+    @keyframes pulse-soft { 0%,100% { opacity: 0.8; text-shadow: 0 0 2px #C8DCC8; } 50% { opacity: 1; text-shadow: 0 0 6px #C8DCC8; } }
+    input, textarea, select {
+        background-color: #FDFBF8; border: 1px solid #EAE5DD; border-radius: 28px;
+        padding: 12px 16px; outline: none; transition: all 0.2s;
+    }
+    input:focus, textarea:focus, select:focus { border-color: #C8DCC8; box-shadow: 0 0 0 2px rgba(200, 220, 200, 0.2); }
+    button { cursor: pointer; }
+</style>   
+</head>
+<body class="bg-background text-gray-900">
+    <!-- 主内容区域 -->
+    <div id="app"></div>
+
+    <!-- 底部导航栏 -->
+    <nav class="bottom-nav">
+        <div class="flex justify-around items-center h-16">
+            <button onclick="navigateTo('home')" class="nav-btn flex flex-col items-center py-2 px-4 text-gray-500 hover:text-primary" data-page="home">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                <span class="text-xs">推荐</span>
+            </button>
+            <button onclick="navigateTo('archive')" class="nav-btn flex flex-col items-center py-2 px-4 text-gray-500 hover:text-primary" data-page="archive">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                </svg>
+                <span class="text-xs">档案</span>
+            </button>
+            <button onclick="navigateTo('explore')" class="nav-btn flex flex-col items-center py-2 px-4 text-gray-500 hover:text-primary" data-page="explore">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <span class="text-xs">逛逛</span>
+            </button>
+            <button onclick="navigateTo('profile')" class="nav-btn flex flex-col items-center py-2 px-4 text-gray-500 hover:text-primary" data-page="profile">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+                <span class="text-xs">我的</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Toast 容器 -->
+    <div id="toast-container"></div>
+
+    <!-- Modal 容器 -->
+    <div id="modal-container"></div>
+
+    <script>
+        // ========================================
+        // 全局 localStorage 操作模块
+        // ========================================
+        const GiftApp = {
+            // 数据模型接口定义
+            interfaces: {
+                Recipient: {
+                    id: 'string',
+                    name: 'string',
+                    relationship: 'string',
+                    birthday: 'string?', // YYYY-MM-DD
+                    anniversary: 'string?', // YYYY-MM-DD
+                    memo: 'string?',
+                    createdAt: 'number'
+                },
+                GiftRecord: {
+                    id: 'string',
+                    recipientId: 'string',
+                    giftName: 'string',
+                    price: 'number?',
+                    occasion: 'string?',
+                    feedback: 'good|neutral|bad|null',
+                    comment: 'string?',
+                    createdAt: 'number'
+                },
+                RecommendSession: {
+                    id: 'string',
+                    recipientId: 'string?',
+                    inputText: 'string',
+                    structuredConditions: 'object',
+                    generatedGifts: 'string[]',
+                    timestamp: 'number'
+                },
+                Settings: {
+                    isMember: 'boolean',
+                    apiKey: 'string?',
+                    useMock: 'boolean'
+                }
+            },
+
+            // 工具函数
+            utils: {
+                // 生成唯一ID
+                generateId: () => {
+                    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+                },
+
+                // 计算距离某天的天数
+                calculateDaysUntil: (dateString) => {
+                    if (!dateString) return null;
+                    const targetDate = new Date(dateString);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    targetDate.setHours(0, 0, 0, 0);
+
+                    // 如果今年已过，计算明年的
+                    let thisYear = new Date(targetDate);
+                    thisYear.setFullYear(today.getFullYear());
+                    if (thisYear < today) {
+                        thisYear.setFullYear(today.getFullYear() + 1);
+                    }
+
+                    const diffTime = thisYear - today;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    return diffDays;
+                },
+
+                // 格式化日期
+                formatDate: (dateString) => {
+                    if (!dateString) return '';
+                    const date = new Date(dateString);
+                    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+                },
+
+                // 提取生日月份和日期
+                extractMonthDay: (dateString) => {
+                    if (!dateString) return null;
+                    const date = new Date(dateString);
+                    return {
+                        month: date.getMonth() + 1,
+                        day: date.getDate()
+                    };
+                },
+
+                // 显示 toast
+                showToast: (message, duration = 2000) => {
+                    const container = document.getElementById('toast-container');
+                    const toast = document.createElement('div');
+                    toast.className = 'toast';
+                    toast.textContent = message;
+                    container.appendChild(toast);
+                    setTimeout(() => toast.remove(), duration);
+                },
+
+                // 显示 modal
+                showModal: (content) => {
+                    const container = document.getElementById('modal-container');
+                    const overlay = document.createElement('div');
+                    overlay.className = 'modal-overlay';
+                    overlay.innerHTML = `<div class="modal-content">${content}</div>`;
+                    overlay.onclick = (e) => {
+                        if (e.target === overlay) {
+                            overlay.remove();
+                        }
+                    };
+                    container.appendChild(overlay);
+                },
+
+                // 隐藏 modal
+                hideModal: () => {
+                    const container = document.getElementById('modal-container');
+                    container.innerHTML = '';
+                }
+            },
+
+            // localStorage 操作函数
+            storage: {
+                // 获取所有收礼人
+                getRecipients: () => {
+                    const data = localStorage.getItem('recipients');
+                    return data ? JSON.parse(data) : [];
+                },
+
+                // 保存收礼人
+                saveRecipient: (recipient) => {
+                    const recipients = GiftApp.storage.getRecipients();
+                    const existingIndex = recipients.findIndex(r => r.id === recipient.id);
+                    if (existingIndex >= 0) {
+                        recipients[existingIndex] = recipient;
+                    } else {
+                        recipient.createdAt = recipient.createdAt || Date.now();
+                        recipients.push(recipient);
+                    }
+                    localStorage.setItem('recipients', JSON.stringify(recipients));
+                },
+
+                // 删除收礼人
+                deleteRecipient: (id) => {
+                    const recipients = GiftApp.storage.getRecipients();
+                    const filtered = recipients.filter(r => r.id !== id);
+                    localStorage.setItem('recipients', JSON.stringify(filtered));
+                },
+
+                // 获取所有礼物记录
+                getGiftRecords: (recipientId) => {
+                    const data = localStorage.getItem('giftRecords');
+                    let records = data ? JSON.parse(data) : [];
+                    if (recipientId) {
+                        records = records.filter(r => r.recipientId === recipientId);
+                    }
+                    // 按创建时间倒序排列
+                    return records.sort((a, b) => b.createdAt - a.createdAt);
+                },
+
+                // 保存礼物记录
+                saveGiftRecord: (record) => {
+                    const records = GiftApp.storage.getGiftRecords();
+                    const existingIndex = records.findIndex(r => r.id === record.id);
+                    if (existingIndex >= 0) {
+                        records[existingIndex] = record;
+                    } else {
+                        record.createdAt = record.createdAt || Date.now();
+                        records.push(record);
+                    }
+                    localStorage.setItem('giftRecords', JSON.stringify(records));
+                },
+
+                // 更新礼物反馈
+                updateGiftFeedback: (recordId, feedback, comment) => {
+                    const records = GiftApp.storage.getGiftRecords();
+                    const index = records.findIndex(r => r.id === recordId);
+                    if (index >= 0) {
+                        records[index].feedback = feedback;
+                        records[index].comment = comment;
+                        localStorage.setItem('giftRecords', JSON.stringify(records));
+                    }
+                },
+
+                // 获取推荐会话
+                getRecommendSessions: () => {
+                    const data = localStorage.getItem('recommendSessions');
+                    return data ? JSON.parse(data) : [];
+                },
+
+                // 保存推荐会话
+                saveRecommendSession: (session) => {
+                    const sessions = GiftApp.storage.getRecommendSessions();
+                    sessions.push(session);
+                    localStorage.setItem('recommendSessions', JSON.stringify(sessions));
+                },
+
+                // 获取设置
+                getSettings: () => {
+                    const data = localStorage.getItem('settings');
+                    return data ? JSON.parse(data) : {
+                        isMember: false,
+                        useMock: true
+                    };
+                },
+
+                // 保存设置
+                saveSettings: (settings) => {
+                    localStorage.setItem('settings', JSON.stringify(settings));
+                }
+            },
+
+            // Mock 礼物库
+            giftDatabase: [
+                // 男友礼物（20个）
+                { id: 1, name: "显示器（2K/高刷电竞屏）", tags: ["男友", "电子", "1000-2000"], price_range: "1000-2000", image_emoji: "🖥️", style_tag: "科技" },
+                { id: 2, name: "机械键盘/人体工学鼠标", tags: ["男友", "电子", "300-800"], price_range: "300-800", image_emoji: "⌨️", style_tag: "科技" },
+                { id: 3, name: "索尼/华为蓝牙耳机", tags: ["男友", "电子", "500-1500"], price_range: "500-1500", image_emoji: "🎧", style_tag: "科技" },
+                { id: 4, name: "膳魔师/象印保温杯", tags: ["男友", "实用", "150-300"], price_range: "150-300", image_emoji: "🥤", style_tag: "实用" },
+                { id: 5, name: "薄荷味润唇膏", tags: ["男友", "实用", "200-500"], price_range: "200-500", image_emoji: "🪒", style_tag: "实用" },
+                { id: 6, name: "便携折叠烧水壶（出差党）", tags: ["男友", "实用", "100-250"], price_range: "100-250", image_emoji: "🫖", style_tag: "实用" },
+                { id: 7, name: "蒸汽眼罩", tags: ["男友", "养生", "50-150"], price_range: "50-150", image_emoji: "👁️", style_tag: "养生" },
+                { id: 8, name: "泡脚桶", tags: ["男友", "养生", "150-400"], price_range: "150-400", image_emoji: "🛁", style_tag: "养生" },
+                { id: 9, name: "车载香薰", tags: ["男友", "生活", "50-200"], price_range: "50-200", image_emoji: "🌸", style_tag: "生活" },
+                { id: 10, name: "充电宝", tags: ["男友", "电子", "80-200"], price_range: "80-200", image_emoji: "🔋", style_tag: "科技" },
+                { id: 11, name: "接骨木味/小众风味利口酒", tags: ["男友", "饮品", "150-350"], price_range: "150-350", image_emoji: "🥃", style_tag: "生活" },
+                { id: 12, name: "对方照片定制乐高微缩手办", tags: ["男友", "创意", "200-500"], price_range: "200-500", image_emoji: "🧱", style_tag: "创意" },
+                { id: 13, name: "生日月相图定制手机壳", tags: ["男友", "创意", "50-150"], price_range: "50-150", image_emoji: "📱", style_tag: "创意" },
+                { id: 14, name: "网易云音乐定制CD", tags: ["男友", "文艺", "80-200"], price_range: "80-200", image_emoji: "💿", style_tag: "文艺" },
+                { id: 15, name: "照片打印机", tags: ["男友", "电子", "400-800"], price_range: "400-800", image_emoji: "🖨️", style_tag: "科技" },
+                { id: 16, name: "反转胶片台灯", tags: ["男友", "文艺", "100-300"], price_range: "100-300", image_emoji: "💡", style_tag: "文艺" },
+                { id: 17, name: "迷你电烤盘", tags: ["男友", "实用", "150-350"], price_range: "150-350", image_emoji: "🍳", style_tag: "实用" },
+                { id: 18, name: "便携烘干机", tags: ["男友", "实用", "200-400"], price_range: "200-400", image_emoji: "🌬️", style_tag: "实用" },
+                { id: 19, name: "艺术家作品拼图", tags: ["男友", "文艺", "100-250"], price_range: "100-250", image_emoji: "🧩", style_tag: "文艺" },
+                { id: 20, name: "柯达一次性胶片相机", tags: ["男友", "文艺", "80-150"], price_range: "80-150", image_emoji: "📷", style_tag: "文艺" },
+
+                // 女友礼物（20个）
+                { id: 21, name: "观夏无火香薰", tags: ["女友", "生活", "200-400"], price_range: "200-400", image_emoji: "🕯️", style_tag: "生活" },
+                { id: 22, name: "膳魔师高颜值保温杯", tags: ["女友", "实用", "150-300"], price_range: "150-300", image_emoji: "🥤", style_tag: "实用" },
+                { id: 23, name: "宝格丽酒店甄选巧克力礼盒", tags: ["女友", "美食", "300-600"], price_range: "300-600", image_emoji: "🍫", style_tag: "美食" },
+                { id: 24, name: "投影仪", tags: ["女友", "电子", "800-2000"], price_range: "800-2000", image_emoji: "🎬", style_tag: "科技" },
+                { id: 25, name: "拍立得相机+相纸礼盒", tags: ["女友", "电子", "400-800"], price_range: "400-800", image_emoji: "📸", style_tag: "科技" },
+                { id: 26, name: "护手霜礼盒（欧舒丹/祖玛珑）", tags: ["女友", "护肤", "200-500"], price_range: "200-500", image_emoji: "🧴", style_tag: "护肤" },
+                { id: 27, name: "小风扇", tags: ["女友", "实用", "50-150"], price_range: "50-150", image_emoji: "🌬️", style_tag: "实用" },
+                { id: 28, name: "充电宝", tags: ["女友", "电子", "80-200"], price_range: "80-200", image_emoji: "🔋", style_tag: "科技" },
+                { id: 29, name: "真丝发圈/眼罩", tags: ["女友", "生活", "100-250"], price_range: "100-250", image_emoji: "👗", style_tag: "生活" },
+                { id: 30, name: "精致马克杯", tags: ["女友", "生活", "50-150"], price_range: "50-150", image_emoji: "☕", style_tag: "生活" },
+                { id: 31, name: "Jelly cat 运动玩偶/毛绒", tags: ["女友", "可爱", "200-500"], price_range: "200-500", image_emoji: "🧸", style_tag: "可爱" },
+                { id: 32, name: "自制油画棒日历", tags: ["女友", "文艺", "50-150"], price_range: "50-150", image_emoji: "🎨", style_tag: "文艺" },
+                { id: 33, name: "定制粘土小人", tags: ["女友", "创意", "100-300"], price_range: "100-300", image_emoji: "🎎", style_tag: "创意" },
+                { id: 34, name: "情侣手印相框", tags: ["女友", "创意", "80-200"], price_range: "80-200", image_emoji: "🖼️", style_tag: "创意" },
+                { id: 35, name: "永生花摆件", tags: ["女友", "生活", "150-350"], price_range: "150-350", image_emoji: "🌹", style_tag: "生活" },
+                { id: 36, name: "插画餐盘", tags: ["女友", "生活", "80-200"], price_range: "80-200", image_emoji: "🍽️", style_tag: "生活" },
+                { id: 37, name: "大英图书馆莎士比亚花园系列酒杯", tags: ["女友", "生活", "150-300"], price_range: "150-300", image_emoji: "🥂", style_tag: "生活" },
+                { id: 38, name: "生日月相图手机壳", tags: ["女友", "创意", "50-150"], price_range: "50-150", image_emoji: "📱", style_tag: "创意" },
+                { id: 39, name: "复古胶卷相册", tags: ["女友", "文艺", "80-200"], price_range: "80-200", image_emoji: "📷", style_tag: "文艺" },
+                { id: 40, name: "星空氛围投影灯", tags: ["女友", "生活", "100-250"], price_range: "100-250", image_emoji: "✨", style_tag: "生活" },
+
+                // 爸爸礼物（20个）
+                { id: 41, name: "小米小爱音箱", tags: ["爸爸", "电子", "150-400"], price_range: "150-400", image_emoji: "🔊", style_tag: "科技" },
+                { id: 42, name: "颈椎按摩仪/腰部按摩器", tags: ["爸爸", "养生", "200-600"], price_range: "200-600", image_emoji: "💆", style_tag: "养生" },
+                { id: 43, name: "品牌茶叶礼盒（龙井/普洱/大红袍）", tags: ["爸爸", "美食", "200-800"], price_range: "200-800", image_emoji: "🍵", style_tag: "美食" },
+                { id: 44, name: "紫砂茶具套装", tags: ["爸爸", "生活", "300-1000"], price_range: "300-1000", image_emoji: "🫖", style_tag: "生活" },
+                { id: 45, name: "高品质白酒礼盒", tags: ["爸爸", "饮品", "300-1500"], price_range: "300-1500", image_emoji: "🍶", style_tag: "饮品" },
+                { id: 46, name: "真皮皮带/钱包", tags: ["爸爸", "实用", "200-600"], price_range: "200-600", image_emoji: "👛", style_tag: "实用" },
+                { id: 47, name: "足浴盆", tags: ["爸爸", "养生", "200-500"], price_range: "200-500", image_emoji: "🛁", style_tag: "养生" },
+                { id: 48, name: "恒温保温杯", tags: ["爸爸", "实用", "100-250"], price_range: "100-250", image_emoji: "🥤", style_tag: "实用" },
+                { id: 49, name: "舒适棉质家居服", tags: ["爸爸", "生活", "150-400"], price_range: "150-400", image_emoji: "👕", style_tag: "生活" },
+                { id: 50, name: "血压仪", tags: ["爸爸", "健康", "150-400"], price_range: "150-400", image_emoji: "💉", style_tag: "健康" },
+                { id: 51, name: "定制刻字紫砂杯", tags: ["爸爸", "创意", "150-400"], price_range: "150-400", image_emoji: "🫖", style_tag: "创意" },
+                { id: 52, name: "怀旧老照片修复相框", tags: ["爸爸", "文艺", "100-300"], price_range: "100-300", image_emoji: "🖼️", style_tag: "文艺" },
+                { id: 53, name: "便携折叠钓鱼椅套装", tags: ["爸爸", "运动", "150-400"], price_range: "150-400", image_emoji: "🎣", style_tag: "运动" },
+                { id: 54, name: "中式线香+香座礼盒", tags: ["爸爸", "生活", "100-300"], price_range: "100-300", image_emoji: "🕯️", style_tag: "生活" },
+                { id: 55, name: "非遗木雕/瓷质小摆件", tags: ["爸爸", "文艺", "150-500"], price_range: "150-500", image_emoji: "🗿", style_tag: "文艺" },
+                { id: 56, name: "家用小型健身器材", tags: ["爸爸", "运动", "100-400"], price_range: "100-400", image_emoji: "💪", style_tag: "运动" },
+                { id: 57, name: "车载收纳套装", tags: ["爸爸", "实用", "80-200"], price_range: "80-200", image_emoji: "🚗", style_tag: "实用" },
+                { id: 58, name: "名人书法字画摆件", tags: ["爸爸", "文艺", "200-800"], price_range: "200-800", image_emoji: "🖌️", style_tag: "文艺" },
+
+                // 妈妈礼物（18个）
+                { id: 59, name: "真丝丝巾/披肩", tags: ["妈妈", "生活", "150-500"], price_range: "150-500", image_emoji: "🧣", style_tag: "生活" },
+                { id: 60, name: "抗老护肤套装", tags: ["妈妈", "护肤", "300-800"], price_range: "300-800", image_emoji: "🧴", style_tag: "护肤" },
+                { id: 61, name: "阿胶/滋补礼盒", tags: ["妈妈", "健康", "200-600"], price_range: "200-600", image_emoji: "💊", style_tag: "健康" },
+                { id: 62, name: "足浴盆+泡脚包", tags: ["妈妈", "养生", "200-500"], price_range: "200-500", image_emoji: "🛁", style_tag: "养生" },
+                { id: 63, name: "按摩披肩", tags: ["妈妈", "养生", "150-400"], price_range: "150-400", image_emoji: "💆", style_tag: "养生" },
+                { id: 64, name: "舒适家居服套装", tags: ["妈妈", "生活", "150-400"], price_range: "150-400", image_emoji: "👕", style_tag: "生活" },
+                { id: 65, name: "香薰加湿器", tags: ["妈妈", "生活", "100-300"], price_range: "100-300", image_emoji: "💨", style_tag: "生活" },
+                { id: 66, name: "厨房多功能料理锅", tags: ["妈妈", "实用", "300-800"], price_range: "300-800", image_emoji: "🍲", style_tag: "实用" },
+                { id: 67, name: "银饰/金饰小吊坠", tags: ["妈妈", "首饰", "200-1000"], price_range: "200-1000", image_emoji: "💎", style_tag: "首饰" },
+                { id: 68, name: "小米小爱音箱", tags: ["妈妈", "电子", "150-400"], price_range: "150-400", image_emoji: "🔊", style_tag: "科技" },
+                { id: 69, name: "全家福定制抱枕/摆台", tags: ["妈妈", "创意", "80-200"], price_range: "80-200", image_emoji: "🖼️", style_tag: "创意" },
+                { id: 70, name: "手工刺绣平安符", tags: ["妈妈", "创意", "50-150"], price_range: "50-150", image_emoji: "🎀", style_tag: "创意" },
+                { id: 71, name: "鲜花+手写贺卡礼盒", tags: ["妈妈", "生活", "100-300"], price_range: "100-300", image_emoji: "💐", style_tag: "生活" },
+                { id: 72, name: "插画餐具套装", tags: ["妈妈", "生活", "150-400"], price_range: "150-400", image_emoji: "🍽️", style_tag: "生活" },
+                { id: 73, name: "精致果盘/下午茶茶具", tags: ["妈妈", "生活", "100-300"], price_range: "100-300", image_emoji: "🍵", style_tag: "生活" },
+                { id: 74, name: "自制/定制布艺收纳篮", tags: ["妈妈", "创意", "50-150"], price_range: "50-150", image_emoji: "🧺", style_tag: "创意" },
+                { id: 75, name: "迷你养生壶", tags: ["妈妈", "实用", "100-250"], price_range: "100-250", image_emoji: "🫖", style_tag: "实用" },
+                { id: 76, name: "复古风首饰盒", tags: ["妈妈", "生活", "80-200"], price_range: "80-200", image_emoji: "💍", style_tag: "生活" },
+
+                // 领导礼物（12个）
+                { id: 77, name: "高端茶叶礼盒（小罐茶/品牌茶礼）", tags: ["领导", "美食", "300-1000"], price_range: "300-1000", image_emoji: "🍵", style_tag: "商务" },
+                { id: 78, name: "派克/凌美钢笔礼盒", tags: ["领导", "商务", "200-600"], price_range: "200-600", image_emoji: "🖊️", style_tag: "商务" },
+                { id: 79, name: "精装商务记事本套装", tags: ["领导", "商务", "150-400"], price_range: "150-400", image_emoji: "📓", style_tag: "商务" },
+                { id: 80, name: "紫砂/青瓷茶具", tags: ["领导", "生活", "300-1000"], price_range: "300-1000", image_emoji: "🫖", style_tag: "商务" },
+                { id: 81, name: "品牌红酒礼盒", tags: ["领导", "饮品", "200-600"], price_range: "200-600", image_emoji: "🍷", style_tag: "商务" },
+                { id: 82, name: "中式文创摆件", tags: ["领导", "文艺", "150-500"], price_range: "150-500", image_emoji: "🎨", style_tag: "文艺" },
+                { id: 83, name: "非遗工艺瓷瓶/木雕摆件", tags: ["领导", "文艺", "300-1200"], price_range: "300-1200", image_emoji: "🏺", style_tag: "文艺" },
+                { id: 84, name: "艺术画册/精装名著", tags: ["领导", "文艺", "150-500"], price_range: "150-500", image_emoji: "📚", style_tag: "文艺" },
+                { id: 85, name: "高端线香+沉香礼盒", tags: ["领导", "生活", "200-600"], price_range: "200-600", image_emoji: "🕯️", style_tag: "生活" },
+                { id: 86, name: "定制姓名印章", tags: ["领导", "创意", "150-400"], price_range: "150-400", image_emoji: "🔖", style_tag: "创意" },
+                { id: 87, name: "博物馆文创礼盒", tags: ["领导", "文艺", "150-500"], price_range: "150-500", image_emoji: "🎁", style_tag: "文艺" },
+                { id: 88, name: "商务车载香氛摆件", tags: ["领导", "生活", "100-300"], price_range: "100-300", image_emoji: "🌸", style_tag: "生活" },
+
+                // 闺蜜礼物（15个）
+                { id: 89, name: "观夏香薰/小众香水", tags: ["闺蜜", "生活", "200-500"], price_range: "200-500", image_emoji: "🕯️", style_tag: "生活" },
+                { id: 90, name: "欧舒丹护手霜礼盒", tags: ["闺蜜", "护肤", "150-300"], price_range: "150-300", image_emoji: "🧴", style_tag: "护肤" },
+                { id: 91, name: "高颜值饰品项链/耳环", tags: ["闺蜜", "首饰", "150-500"], price_range: "150-500", image_emoji: "💎", style_tag: "首饰" },
+                { id: 92, name: "拍立得+相纸", tags: ["闺蜜", "电子", "400-800"], price_range: "400-800", image_emoji: "📸", style_tag: "科技" },
+                { id: 93, name: "可爱马克杯", tags: ["闺蜜", "生活", "50-150"], price_range: "50-150", image_emoji: "☕", style_tag: "生活" },
+                { id: 94, name: "小风扇/充电宝", tags: ["闺蜜", "实用", "50-200"], price_range: "50-200", image_emoji: "🔋", style_tag: "实用" },
+                { id: 95, name: "柯达一次性胶片相机", tags: ["闺蜜", "文艺", "80-150"], price_range: "80-150", image_emoji: "📷", style_tag: "文艺" },
+                { id: 96, name: "复古胶卷相册", tags: ["闺蜜", "文艺", "80-200"], price_range: "80-200", image_emoji: "📷", style_tag: "文艺" },
+                { id: 97, name: "定制闺蜜手链", tags: ["闺蜜", "首饰", "100-300"], price_range: "100-300", image_emoji: "💎", style_tag: "首饰" },
+                { id: 98, name: "DIY奶油胶手机壳", tags: ["闺蜜", "创意", "50-150"], price_range: "50-150", image_emoji: "📱", style_tag: "创意" },
+                { id: 99, name: "可视监控门铃（异地安全感）", tags: ["闺蜜", "电子", "200-500"], price_range: "200-500", image_emoji: "📹", style_tag: "科技" },
+                { id: 100, name: "大英图书馆系列酒杯/餐具", tags: ["闺蜜", "生活", "150-350"], price_range: "150-350", image_emoji: "🥂", style_tag: "生活" },
+                { id: 101, name: "艺术家拼图", tags: ["闺蜜", "文艺", "100-250"], price_range: "100-250", image_emoji: "🧩", style_tag: "文艺" },
+                { id: 102, name: "反转胶片台灯", tags: ["闺蜜", "文艺", "100-300"], price_range: "100-300", image_emoji: "💡", style_tag: "文艺" },
+                { id: 103, name: "零食礼盒+精致餐具组合", tags: ["闺蜜", "美食", "150-400"], price_range: "150-400", image_emoji: "🍱", style_tag: "美食" },
+
+                // 兄弟礼物（14个）
+                { id: 104, name: "专业电竞鼠标/机械键盘", tags: ["兄弟", "电子", "300-800"], price_range: "300-800", image_emoji: "🖱️", style_tag: "科技" },
+                { id: 105, name: "篮球/专业运动护具", tags: ["兄弟", "运动", "150-500"], price_range: "150-500", image_emoji: "🏀", style_tag: "运动" },
+                { id: 106, name: "潮牌帽子/短袖", tags: ["兄弟", "生活", "150-400"], price_range: "150-400", image_emoji: "🧢", style_tag: "生活" },
+                { id: 107, name: "酒水礼盒（精酿/威士忌）", tags: ["兄弟", "饮品", "200-600"], price_range: "200-600", image_emoji: "🥃", style_tag: "饮品" },
+                { id: 108, name: "户外多功能工具", tags: ["兄弟", "实用", "100-300"], price_range: "100-300", image_emoji: "🔧", style_tag: "实用" },
+                { id: 109, name: "运动鞋袜礼盒", tags: ["兄弟", "运动", "200-500"], price_range: "200-500", image_emoji: "👟", style_tag: "运动" },
+                { id: 110, name: "定制刻字军牌/手链", tags: ["兄弟", "创意", "100-250"], price_range: "100-250", image_emoji: "🏷️", style_tag: "创意" },
+                { id: 111, name: "复古游戏机", tags: ["兄弟", "电子", "200-500"], price_range: "200-500", image_emoji: "🎮", style_tag: "科技" },
+                { id: 112, name: "便携烧烤炉", tags: ["兄弟", "运动", "150-400"], price_range: "150-400", image_emoji: "🍖", style_tag: "运动" },
+                { id: 113, name: "桌面潮玩手办", tags: ["兄弟", "创意", "150-500"], price_range: "150-500", image_emoji: "🎭", style_tag: "创意" },
+                { id: 114, name: "迷你电烤盘", tags: ["兄弟", "实用", "150-350"], price_range: "150-350", image_emoji: "🍳", style_tag: "实用" },
+                { id: 115, name: "车载氛围灯/改装小配件", tags: ["兄弟", "生活", "80-200"], price_range: "80-200", image_emoji: "💡", style_tag: "生活" },
+                { id: 116, name: "生日月相图手机壳", tags: ["兄弟", "创意", "50-150"], price_range: "50-150", image_emoji: "📱", style_tag: "创意" },
+                { id: 117, name: "露营折叠桌椅套装", tags: ["兄弟", "运动", "200-600"], price_range: "200-600", image_emoji: "⛺", style_tag: "运动" },
+
+                // 小朋友礼物（14个）
+                { id: 118, name: "乐高/积木套装", tags: ["小朋友", "玩具", "100-500"], price_range: "100-500", image_emoji: "🧱", style_tag: "玩具" },
+                { id: 119, name: "儿童绘本礼盒", tags: ["小朋友", "书籍", "80-200"], price_range: "80-200", image_emoji: "📚", style_tag: "书籍" },
+                { id: 120, name: "儿童保温杯", tags: ["小朋友", "实用", "50-150"], price_range: "50-150", image_emoji: "🥤", style_tag: "实用" },
+                { id: 121, name: "文具礼盒", tags: ["小朋友", "学习", "50-150"], price_range: "50-150", image_emoji: "✏️", style_tag: "学习" },
+                { id: 122, name: "卡通睡衣", tags: ["小朋友", "生活", "80-200"], price_range: "80-200", image_emoji: "👕", style_tag: "生活" },
+                { id: 123, name: "早教机/故事机", tags: ["小朋友", "学习", "150-500"], price_range: "150-500", image_emoji: "🎵", style_tag: "学习" },
+                { id: 124, name: "儿童相机", tags: ["小朋友", "电子", "150-400"], price_range: "150-400", image_emoji: "📷", style_tag: "科技" },
+                { id: 125, name: "科学实验套装", tags: ["小朋友", "学习", "100-300"], price_range: "100-300", image_emoji: "🔬", style_tag: "学习" },
+                { id: 126, name: "天文望远镜", tags: ["小朋友", "学习", "200-800"], price_range: "200-800", image_emoji: "🔭", style_tag: "学习" },
+                { id: 127, name: "DIY黏土/奶油胶套装", tags: ["小朋友", "手工", "50-150"], price_range: "50-150", image_emoji: "🎨", style_tag: "手工" },
+                { id: 128, name: "定制名字书包/印章", tags: ["小朋友", "学习", "80-200"], price_range: "80-200", image_emoji: "🎒", style_tag: "学习" },
+                { id: 129, name: "迷你盆栽/观察鱼缸", tags: ["小朋友", "生活", "50-150"], price_range: "50-150", image_emoji: "🌱", style_tag: "生活" },
+                { id: 130, name: "艺术家儿童拼图", tags: ["小朋友", "玩具", "80-200"], price_range: "80-200", image_emoji: "🧩", style_tag: "玩具" },
+                { id: 131, name: "手工油画套装", tags: ["小朋友", "手工", "80-200"], price_range: "80-200", image_emoji: "🎨", style_tag: "手工" }
+            ],
+            // 判断礼物是否适合该收礼人（根据关系过滤）
+            isGiftSuitable: (gift, relationship) => {
+                const female = ['妈妈', '女友', '闺蜜', '女儿', '奶奶', '外婆', '姐姐', '妹妹', '爱人'];
+                const male = ['爸爸', '男友', '兄弟', '爷爷', '外公', '哥哥', '弟弟'];
+                const child = ['小朋友', '孩子'];
+                // 长辈类（领导、前辈、老师等）
+                const elder = ['领导', '前辈', '老师', '长辈'];
+                const tags = gift.tags;
+                const giftName = gift.name;
+                
+                // 1. 女性收礼人：不能出现男性专属礼物
+                if (female.includes(relationship)) {
+                    if (tags.includes('男友') || tags.includes('爸爸') || tags.includes('兄弟')) {
+                        return false;
+                    }
+                    // 额外过滤：剃须刀、游戏机等明显男性向礼物
+                    if (giftName.includes('剃须刀') || giftName.includes('游戏机') || 
+                        giftName.includes('电竞') || giftName.includes('机械键盘')) {
+                        return false;
+                    }
+                }
+                
+                // 2. 男性收礼人：不能出现女性专属礼物
+                if (male.includes(relationship)) {
+                    if (tags.includes('女友') || tags.includes('妈妈') || tags.includes('闺蜜')) {
+                        return false;
+                    }
+                    // 额外过滤：明显女性向礼物
+                    if (giftName.includes('口红') || giftName.includes('丝巾') || 
+                        giftName.includes('护手霜') || giftName.includes('香薰')) {
+                        return false;
+                    }
+                }
+                
+                // 3. 小朋友收礼人：只能出现含「小朋友」标签的礼物
+                if (child.includes(relationship)) {
+                    return tags.includes('小朋友');
+                }
+                
+                // 4. 成人收礼人：不能出现小朋友专属礼物
+                if (!child.includes(relationship) && tags.includes('小朋友')) {
+                    return false;
+                }
+                
+                // 5. 长辈/领导类：过滤掉过于年轻化或娱乐化的礼物
+                if (elder.includes(relationship)) {
+                    if (tags.includes('游戏') || tags.includes('电竞') || 
+                        giftName.includes('游戏机') || giftName.includes('玩偶')) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            },
+
+            // Mock 推荐函数
+           searchGifts: (queryText, recipientId, excludeGiftNames = []) => {
+                const giftDatabase = GiftApp.giftDatabase;
+                const allRecords = GiftApp.storage.getGiftRecords();
+                const recipient = recipientId ? GiftApp.storage.getRecipients().find(r => r.id === recipientId) : null;
+                const relationship = recipient ? recipient.relationship : '';
+
+                // 根据关系过滤礼物（核心改进）
+                let suitableGifts = [...giftDatabase];
+                if (relationship) {
+                    suitableGifts = giftDatabase.filter(gift => GiftApp.isGiftSuitable(gift, relationship));
+                    if (suitableGifts.length === 0) suitableGifts = [...giftDatabase];
+                }
+
+                // 提取用户输入的关键词
+                const keywords = { relationship: [], budget: null, style: [], occasion: [] };
+                const budgetMatch = queryText.match(/预算(\d+)-(\d+)/);
+                if (budgetMatch) keywords.budget = [parseInt(budgetMatch[1]), parseInt(budgetMatch[2])];
+
+                const relationshipKeywords = ['男友', '女友', '爸爸', '妈妈', '领导', '闺蜜', '兄弟', '小朋友', '爱人', '亲人', '朋友', '前辈', '同事'];
+                relationshipKeywords.forEach(rel => {
+                    if (queryText.includes(rel) || (recipient && recipient.relationship === rel)) {
+                        keywords.relationship.push(rel);
+                    }
+                });
+
+                const styleMatch = queryText.match(/风格[:：]\s*([\u4e00-\u9fa5]+)/);
+                if (styleMatch) keywords.style.push(styleMatch[1]);
+
+                const occasionMatch = queryText.match(/场合[:：]\s*([\u4e00-\u9fa5]+)/);
+                if (occasionMatch) keywords.occasion.push(occasionMatch[1]);
+
+                const recipientRecords = allRecords.filter(r => r.recipientId === recipientId);
+                const likedGifts = recipientRecords.filter(r => r.feedback === 'good').map(r => r.giftName);
+                const dislikedGifts = recipientRecords.filter(r => r.feedback === 'bad').map(r => r.giftName);
+                const sentGifts = recipientRecords.map(r => r.giftName);
+
+                // 计算匹配分数（只在 suitableGifts 中计算）
+                const scoredGifts = suitableGifts.map(gift => {
+                    let score = 0;
+                    if (keywords.relationship.length > 0) {
+                        keywords.relationship.forEach(rel => {
+                            if (gift.tags.includes(rel)) score += 30;
+                        });
+                    }
+                    if (keywords.budget) {
+                        const [giftMin, giftMax] = gift.price_range.split('-').map(Number);
+                        if (keywords.budget[0] <= giftMax && keywords.budget[1] >= giftMin) score += 20;
+                    }
+                    if (keywords.style.length > 0) {
+                        keywords.style.forEach(style => {
+                            if (gift.style_tag === style || gift.tags.some(t => t === style)) score += 15;
+                        });
+                    }
+                    likedGifts.forEach(likedGift => {
+                        const likedGiftObj = giftDatabase.find(g => g.name === likedGift);
+                        if (likedGiftObj && gift.style_tag === likedGiftObj.style_tag) score += 10;
+                    });
+                    dislikedGifts.forEach(dislikedGift => {
+                        const dislikedGiftObj = giftDatabase.find(g => g.name === dislikedGift);
+                        if (dislikedGiftObj && gift.style_tag === dislikedGiftObj.style_tag) score -= 20;
+                    });
+                    if (sentGifts.includes(gift.name)) score -= 50;
+                    if (excludeGiftNames.includes(gift.name)) score -= 999;
+                    return { gift, score };
+                });
+
+                // 随机排序（保证换一批多样性）
+                let candidates = scoredGifts.filter(item => item.score > -30).map(item => item.gift);
+                for (let i = candidates.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+                }
+                let recommendations = candidates.slice(0, 5);
+
+                // 不足5个时从 suitableGifts 中补充
+                if (recommendations.length < 5) {
+                    const remaining = suitableGifts.filter(gift =>
+                        !recommendations.includes(gift) &&
+                        !excludeGiftNames.includes(gift.name) &&
+                        !sentGifts.includes(gift.name)
+                    );
+                    const shuffled = remaining.sort(() => Math.random() - 0.5);
+                    recommendations = [...recommendations, ...shuffled.slice(0, 5 - recommendations.length)];
+                }
+
+                // 生成推荐理由
+                return recommendations.map(gift => {
+                    let reason = '';
+                    if (keywords.relationship.length > 0 && gift.tags.some(t => keywords.relationship.includes(t))) {
+                        reason += `适合${keywords.relationship[0]}，`;
+                    }
+                    if (keywords.budget) reason += `价格在预算范围内，`;
+                    if (keywords.style.length > 0) reason += `${keywords.style[0]}风格，`;
+                    reason += gift.style_tag === '科技' ? '实用又时尚' :
+                              gift.style_tag === '生活' ? '贴心又实用' :
+                              gift.style_tag === '创意' ? '独特又有心意' :
+                              gift.style_tag === '文艺' ? '有品味又有格调' :
+                              gift.style_tag === '养生' ? '关心TA的健康' : '实用又贴心';
+                    return {
+                        name: gift.name,
+                        price_range: gift.price_range,
+                        reason: reason,
+                        image_emoji: gift.image_emoji,
+                        style_tag: gift.style_tag
+                    };
+                });
+            },
+            // 真实 AI 推荐函数（预留）
+            aiRecommend: async (queryText, recipientId) => {
+                // 预留接口，可以接入真实的AI API
+                // 当前返回 Mock 数据
+                return GiftApp.searchGifts(queryText, recipientId);
+            },
+
+            // 全局状态
+            state: {
+                currentPage: 'home',
+                selectedRecipientId: null,
+                currentRecommendations: [],
+                currentInputText: '',
+                excludeGiftNames: [],
+                isRecording: false,
+                selectedGift: null
+            }
+        };
+
+        // ========================================
+        // 页面初始化
+        // ========================================
+        function initializeApp() {
+            // 初始化默认数据
+            initializeDefaultData();
+
+            // 渲染首页
+            renderPage('home');
+
+            // 更新底部导航栏状态
+            updateNavigation();
+        }
+
+        // 初始化默认数据
+        function initializeDefaultData() {
+            const recipients = GiftApp.storage.getRecipients();
+            const settings = GiftApp.storage.getSettings();
+
+            // 如果没有收礼人，创建示例收礼人
+            if (recipients.length === 0) {
+                const sampleRecipients = [
+                    {
+                        id: GiftApp.utils.generateId(),
+                        name: '妈妈',
+                        relationship: '妈妈',
+                        birthday: '1990-05-20',
+                        memo: '喜欢花和养生',
+                        createdAt: Date.now()
+                    },
+                    {
+                        id: GiftApp.utils.generateId(),
+                        name: '小明',
+                        relationship: '小朋友',
+                        birthday: '2018-06-01',
+                        memo: '喜欢乐高和机器人',
+                        createdAt: Date.now()
+                    }
+                ];
+
+                sampleRecipients.forEach(r => GiftApp.storage.saveRecipient(r));
+            }
+
+            // 如果没有设置，初始化设置
+            if (!settings) {
+                GiftApp.storage.saveSettings({
+                    isMember: false,
+                    useMock: true
+                });
+            }
+        }
+
+        // ========================================
+        // 页面渲染
+        // ========================================
+        function renderPage(page) {
+            GiftApp.state.currentPage = page;
+            const app = document.getElementById('app');
+
+            switch (page) {
+                case 'home':
+                    app.innerHTML = renderHomePage();
+                    break;
+                case 'results':
+                    app.innerHTML = renderResultsPage();
+                    break;
+                case 'archive':
+                    app.innerHTML = renderArchivePage();
+                    break;
+                case 'recipient-detail':
+                    app.innerHTML = renderRecipientDetailPage();
+                    break;
+                case 'explore':
+                    app.innerHTML = renderExplorePage();
+                    break;
+                case 'profile':
+                    app.innerHTML = renderProfilePage();
+                    break;
+                default:
+                    app.innerHTML = renderHomePage();
+            }
+
+            updateNavigation();
+        }
+
+        // ========================================
+        // 导航管理
+        // ========================================
+        function navigateTo(page, params = {}) {
+            if (params.recipientId) {
+                GiftApp.state.selectedRecipientId = params.recipientId;
+            }
+            if (params.inputText) {
+                GiftApp.state.currentInputText = params.inputText;
+            }
+            if (params.excludeGiftNames) {
+                GiftApp.state.excludeGiftNames = params.excludeGiftNames;
+            }
+
+            renderPage(page);
+        }
+
+        function updateNavigation() {
+            const buttons = document.querySelectorAll('.nav-btn');
+            buttons.forEach(btn => {
+                const page = btn.getAttribute('data-page');
+                if (page === GiftApp.state.currentPage) {
+                    btn.classList.add('text-primary');
+                    btn.classList.remove('text-gray-500');
+                } else {
+                    btn.classList.remove('text-primary');
+                    btn.classList.add('text-gray-500');
+                }
+            });
+        }
+
+        // ========================================
+        // 首页渲染
+        // ========================================
+        function renderHomePage() {
+            const recipients = GiftApp.storage.getRecipients();
+            const giftRecords = GiftApp.storage.getGiftRecords();
+
+            // 获取最近送礼的3位收礼人
+            const recentRecipients = getRecentRecipients(recipients, giftRecords);
+
+            return `
+                <div class="min-h-screen pb-4 fade-in">
+                    <!-- 顶部标题 -->
+                    <div class="bg-gradient-to-r from-primary to-primary-light px-6 py-8 rounded-b-3xl">
+                        <h1 class="text-white text-2xl font-bold text-center">让心意流动起来</h1>
+                    </div>
+
+                    <!-- 快捷推荐区 -->
+                    ${recentRecipients.length > 0 ? `
+                        <div class="px-6 mt-6">
+                            <h2 class="text-gray-600 text-sm mb-3">最近送礼给TA</h2>
+                            <div class="flex gap-3 overflow-x-auto pb-2">
+                                ${recentRecipients.map(r => `
+                                    <button onclick="quickSelectRecipient('${r.id}')" class="flex-shrink-0 flex flex-col items-center">
+                                        <div class="w-14 h-14 rounded-full bg-gradient-to-br from-primary-light to-primary flex items-center justify-center text-white text-lg font-bold mb-1">
+                                            ${r.name.charAt(0)}
+                                        </div>
+                                        <span class="text-xs text-gray-600">${r.name}</span>
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- 输入框区域 -->
+                    <div class="px-6 mt-6">
+                        <div class="bg-white rounded-2xl p-4 card-shadow">
+                            <textarea
+                                id="gift-input"
+                                class="w-full h-32 bg-gray-50 rounded-xl p-3 text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-primary-light"
+                                placeholder="跟我聊聊TA是谁、爱好特点，你的礼物预算、种类偏好~"
+                                onchange="GiftApp.state.currentInputText = this.value"
+                            >${GiftApp.state.currentInputText}</textarea>
+
+                            <!-- 语音输入按钮 -->
+                            <div class="flex justify-between items-center mt-3">
+                                <button
+                                    id="voice-btn"
+                                    onclick="toggleVoiceInput()"
+                                    class="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors"
+                                >
+                                    <svg class="w-5 h-5 ${GiftApp.state.isRecording ? 'text-red-500 recording' : 'text-gray-600'}" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                                        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                                    </svg>
+                                    <span class="text-sm ${GiftApp.state.isRecording ? 'text-red-500' : 'text-gray-600'}">${GiftApp.state.isRecording ? '停止录音' : '语音输入'}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 快捷标签栏 -->
+                    <div class="px-6 mt-4">
+                        <div class="flex gap-2 flex-wrap">
+                            <button onclick="openBudgetModal()" class="px-4 py-2 bg-white rounded-full text-sm text-primary font-medium card-shadow hover:shadow-md transition-shadow">
+                                + 预算
+                            </button>
+                            <button onclick="openStyleModal()" class="px-4 py-2 bg-white rounded-full text-sm text-primary font-medium card-shadow hover:shadow-md transition-shadow">
+                                + 风格
+                            </button>
+                            <button onclick="openOccasionModal()" class="px-4 py-2 bg-white rounded-full text-sm text-primary font-medium card-shadow hover:shadow-md transition-shadow">
+                                + 场合
+                            </button>
+                            <button onclick="openRecipientModal()" class="px-4 py-2 bg-white rounded-full text-sm text-primary font-medium card-shadow hover:shadow-md transition-shadow">
+                                + 收礼人
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 开始推荐按钮 -->
+                    <div class="px-6 mt-8">
+                        <button
+                            onclick="startRecommendation()"
+                            class="w-full btn-gradient text-white font-bold py-4 rounded-2xl text-lg transition-all"
+                        >
+                            开始推荐 ✨
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 获取最近送礼的收礼人
+        function getRecentRecipients(recipients, giftRecords) {
+            if (giftRecords.length === 0) return [];
+
+            // 按时间排序获取最近的记录
+            const recentRecords = giftRecords
+                .sort((a, b) => b.createdAt - a.createdAt)
+                .slice(0, 10);
+
+            // 获取这些记录对应的收礼人
+            const recentRecipientIds = [...new Set(recentRecords.map(r => r.recipientId))];
+            const recentRecipients = recentRecipientIds
+                .map(id => recipients.find(r => r.id === id))
+                .filter(r => r)
+                .slice(0, 3);
+
+            return recentRecipients;
+        }
+
+        // 快捷选择收礼人
+        function quickSelectRecipient(recipientId) {
+            const recipients = GiftApp.storage.getRecipients();
+            const recipient = recipients.find(r => r.id === recipientId);
+            if (recipient) {
+                const input = document.getElementById('gift-input');
+                input.value += ` 送给${recipient.name}`;
+                GiftApp.state.currentInputText = input.value;
+                GiftApp.state.selectedRecipientId = recipientId;
+            }
+        }
+
+        // 开始推荐
+        function startRecommendation() {
+            const input = document.getElementById('gift-input');
+            const inputText = input.value.trim();
+
+            if (!inputText) {
+                GiftApp.utils.showToast('请先输入一些描述~');
+                return;
+            }
+
+            // 显示加载状态
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <div class="min-h-screen flex flex-col items-center justify-center">
+                    <div class="skeleton w-32 h-32 rounded-full mb-4"></div>
+                    <div class="skeleton w-48 h-6 rounded mb-2"></div>
+                    <div class="skeleton w-64 h-4 rounded"></div>
+                </div>
+            `;
+
+            // 调用推荐接口
+            setTimeout(() => {
+                const recommendations = GiftApp.searchGifts(
+                    inputText,
+                    GiftApp.state.selectedRecipientId,
+                    GiftApp.state.excludeGiftNames
+                );
+
+                GiftApp.state.currentRecommendations = recommendations;
+                GiftApp.state.currentInputText = inputText;
+
+                // 保存推荐会话
+                GiftApp.storage.saveRecommendSession({
+                    id: GiftApp.utils.generateId(),
+                    recipientId: GiftApp.state.selectedRecipientId,
+                    inputText: inputText,
+                    structuredConditions: {},
+                    generatedGifts: recommendations.map(r => r.name),
+                    timestamp: Date.now()
+                });
+
+                navigateTo('results');
+            }, 1000); // 模拟API延迟
+        }
+
+        // ========================================
+        // 推荐结果页渲染
+        // ========================================
+        function renderResultsPage() {
+            const recommendations = GiftApp.state.currentRecommendations;
+            const recipients = GiftApp.storage.getRecipients();
+
+            return `
+                <div class="min-h-screen pb-24 fade-in">
+                    <!-- 顶部 -->
+                    <div class="px-6 py-4 flex items-center justify-between">
+                        <button onclick="navigateTo('home')" class="p-2">
+                            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                        </button>
+                        <h1 class="text-lg font-bold text-gray-900">推荐结果</h1>
+                        <div class="w-10"></div>
+                    </div>
+
+                    <!-- 礼物列表 -->
+                    <div class="px-6 space-y-4">
+                        ${recommendations.map((gift, index) => `
+                            <div class="bg-white rounded-2xl p-4 card-shadow" data-gift-index="${index}">
+                                <div class="flex gap-4">
+                                    <div class="w-20 h-20 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-4xl flex-shrink-0">
+                                        ${gift.image_emoji}
+                                    </div>
+                                    <div class="flex-1">
+                                        <h3 class="font-bold text-gray-900 text-base mb-1">${gift.name}</h3>
+                                        <p class="text-sm text-primary font-medium mb-1">¥${gift.price_range}</p>
+                                        <p class="text-xs text-gray-500 line-clamp-2">${gift.reason}</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 mt-4">
+                                    <button
+                                        onclick="selectGift(${index})"
+                                        class="flex-1 btn-gradient text-white font-bold py-2.5 rounded-xl text-sm"
+                                    >
+                                        送这个
+                                    </button>
+                                    <button
+                                        onclick="showBuyLink()"
+                                        class="px-4 py-2.5 bg-gray-100 rounded-xl text-sm text-gray-600 font-medium"
+                                    >
+                                        购买
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <!-- 底部操作栏 -->
+                    <div class="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3 flex gap-3">
+                        <button
+                            onclick="refreshRecommendations()"
+                            class="flex-1 bg-gray-100 text-gray-700 font-medium py-3 rounded-xl"
+                        >
+                            换一批
+                        </button>
+                        <button
+                            onclick="openRefineModal()"
+                            class="flex-1 bg-primary text-white font-medium py-3 rounded-xl"
+                        >
+                            细化指令
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 选择礼物
+        function selectGift(index) {
+            const gift = GiftApp.state.currentRecommendations[index];
+            GiftApp.state.selectedGift = gift;
+
+            const recipients = GiftApp.storage.getRecipients();
+            const recipientOptions = recipients.map(r =>
+                `<option value="${r.id}">${r.name} (${r.relationship})</option>`
+            ).join('');
+
+            const modalContent = `
+                <div class="text-center">
+                    <div class="text-4xl mb-4">${gift.image_emoji}</div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">${gift.name}</h2>
+
+                    <div class="text-left mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">选择收礼人</label>
+                        <select id="gift-recipient-select" class="w-full px-4 py-3 bg-gray-100 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light">
+                            <option value="">请选择收礼人</option>
+                            ${recipientOptions}
+                            <option value="new">+ 新建收礼人</option>
+                        </select>
+                    </div>
+
+                    <div class="text-left mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">反馈</label>
+                        <div class="flex gap-3 justify-center">
+                            <button onclick="selectFeedback('good')" class="feedback-btn w-14 h-14 rounded-full bg-gray-100 hover:bg-green-100 flex items-center justify-center text-2xl" data-feedback="good">😊</button>
+                            <button onclick="selectFeedback('neutral')" class="feedback-btn w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-2xl" data-feedback="neutral">😐</button>
+                            <button onclick="selectFeedback('bad')" class="feedback-btn w-14 h-14 rounded-full bg-gray-100 hover:bg-red-100 flex items-center justify-center text-2xl" data-feedback="bad">😞</button>
+                        </div>
+                        <input type="hidden" id="gift-feedback" value="">
+                    </div>
+
+                    <div class="text-left mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">备注（可选）</label>
+                        <textarea id="gift-comment" class="w-full px-4 py-3 bg-gray-100 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light resize-none" rows="2" placeholder="记录一下心情..."></textarea>
+                    </div>
+
+                    <button onclick="saveGiftRecord()" class="w-full btn-gradient text-white font-bold py-4 rounded-xl">
+                        确认记录
+                    </button>
+                </div>
+            `;
+
+            GiftApp.utils.showModal(modalContent);
+
+            // 监听收礼人选择变化
+            document.getElementById('gift-recipient-select').addEventListener('change', function() {
+                if (this.value === 'new') {
+                    GiftApp.utils.hideModal();
+                    openAddRecipientModal();
+                }
+            });
+        }
+
+        // 选择反馈
+        function selectFeedback(feedback) {
+            document.querySelectorAll('.feedback-btn').forEach(btn => {
+                btn.classList.remove('ring-2', 'ring-primary');
+            });
+            document.querySelector(`[data-feedback="${feedback}"]`).classList.add('ring-2', 'ring-primary');
+            document.getElementById('gift-feedback').value = feedback;
+        }
+
+        // 保存礼物记录
+        function saveGiftRecord() {
+            const recipientId = document.getElementById('gift-recipient-select').value;
+            const feedback = document.getElementById('gift-feedback').value;
+            const comment = document.getElementById('gift-comment').value;
+
+            if (!recipientId) {
+                GiftApp.utils.showToast('请选择收礼人');
+                return;
+            }
+
+            // 保存记录
+            GiftApp.storage.saveGiftRecord({
+                id: GiftApp.utils.generateId(),
+                recipientId: recipientId,
+                giftName: GiftApp.state.selectedGift.name,
+                price: GiftApp.state.selectedGift.price_range,
+                feedback: feedback || null,
+                comment: comment,
+                createdAt: Date.now()
+            });
+
+            GiftApp.utils.hideModal();
+            GiftApp.utils.showToast('已记录！');
+
+            // 显示后续询问
+            setTimeout(() => {
+                const recipient = GiftApp.storage.getRecipients().find(r => r.id === recipientId);
+                const askContent = `
+                    <div class="text-center">
+                        <div class="text-4xl mb-4">🎁</div>
+                        <h2 class="text-xl font-bold text-gray-900 mb-2">还需要为${recipient.name}选其他礼物吗？</h2>
+                        <div class="flex gap-3 mt-6">
+                            <button onclick="recommendMore('${recipientId}')" class="flex-1 btn-gradient text-white font-bold py-3 rounded-xl">
+                                再推荐一个
+                            </button>
+                            <button onclick="changePerson()" class="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl">
+                                换个人送
+                            </button>
+                        </div>
+                    </div>
+                `;
+                GiftApp.utils.showModal(askContent);
+            }, 500);
+        }
+
+        // 再推荐一个
+        function recommendMore(recipientId) {
+            GiftApp.utils.hideModal();
+
+            // 将当前选中的礼物加入排除列表
+            GiftApp.state.excludeGiftNames.push(GiftApp.state.selectedGift.name);
+
+            // 重新推荐
+            refreshRecommendations();
+        }
+
+        // 换个人送
+        function changePerson() {
+            GiftApp.utils.hideModal();
+            GiftApp.state.excludeGiftNames = [];
+            GiftApp.state.currentInputText = '';
+            navigateTo('home');
+        }
+        // 刷新推荐
+        function refreshRecommendations() {
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <div class="min-h-screen flex flex-col items-center justify-center">
+                    <div class="skeleton w-32 h-32 rounded-full mb-4"></div>
+                    <div class="skeleton w-48 h-6 rounded mb-2"></div>
+                    <div class="skeleton w-64 h-4 rounded"></div>
+                </div>
+            `;
+
+            setTimeout(() => {
+                const newRecs = GiftApp.searchGifts(
+                    GiftApp.state.currentInputText,
+                    GiftApp.state.selectedRecipientId,
+                    GiftApp.state.excludeGiftNames
+                );
+                // 如果推荐结果为空或与之前完全相同，提示无更多
+                if (newRecs.length === 0 || (newRecs.length === GiftApp.state.currentRecommendations.length &&
+                    newRecs.every((g, i) => g.name === GiftApp.state.currentRecommendations[i]?.name))) {
+                    GiftApp.utils.showToast("暂时没有更多推荐，试试细化指令吧~");
+                    renderPage('results'); // 恢复原结果页
+                    return;
+                }
+                GiftApp.state.currentRecommendations = newRecs;
+                renderPage('results');
+            }, 1000);
+        }
+       
+
+        // 细化指令
+        function openRefineModal() {
+            const modalContent = `
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">细化指令</h2>
+                    <textarea id="refine-input" class="w-full h-32 px-4 py-3 bg-gray-100 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light resize-none" placeholder="补充一些要求，比如：再贵一点、更实用一些..."></textarea>
+                    <button onclick="applyRefinement()" class="w-full btn-gradient text-white font-bold py-4 rounded-xl mt-4">
+                        应用并重新推荐
+                    </button>
+                </div>
+            `;
+            GiftApp.utils.showModal(modalContent);
+        }
+
+        // 应用细化指令
+        function applyRefinement() {
+            const refineInput = document.getElementById('refine-input').value.trim();
+            if (!refineInput) {
+                GiftApp.utils.hideModal();
+                return;
+            }
+            GiftApp.state.currentInputText += ' ' + refineInput;
+            // 细化指令后清空排除列表，重新开始推荐
+            GiftApp.state.excludeGiftNames = [];
+            GiftApp.utils.hideModal();
+            refreshRecommendations();
+        }
+           
+               // 显示购买链接
+        function showBuyLink() {
+            GiftApp.utils.showToast('演示版暂不跳转购买链接');
+        }
+
+        // ========================================
+        // 语音输入
+        // ========================================
+        let recognition = null;
+
+        function toggleVoiceInput() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                GiftApp.utils.showToast('您的浏览器不支持语音输入');
+                return;
+            }
+
+            if (GiftApp.state.isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+
+        function startRecording() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'zh-CN';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
+                GiftApp.state.isRecording = true;
+                renderPage('home');
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                const input = document.getElementById('gift-input');
+                input.value += transcript;
+                GiftApp.state.currentInputText = input.value;
+            };
+
+            recognition.onerror = (event) => {
+                console.error('语音识别错误:', event.error);
+                GiftApp.utils.showToast('语音识别失败，请重试');
+                stopRecording();
+            };
+
+            recognition.onend = () => {
+                stopRecording();
+            };
+
+            recognition.start();
+        }
+
+        function stopRecording() {
+            if (recognition) {
+                recognition.stop();
+                recognition = null;
+            }
+            GiftApp.state.isRecording = false;
+            renderPage('home');
+        }
+
+        // ========================================
+        // 快捷标签 Modal
+        // ========================================
+        function openBudgetModal() {
+            const modalContent = `
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">设置预算</h2>
+                    <div class="flex gap-3 mb-4">
+                        <div class="flex-1">
+                            <label class="block text-sm text-gray-600 mb-2">最低价格</label>
+                            <input type="number" id="budget-min" class="w-full px-4 py-3 bg-gray-100 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light" placeholder="0" value="0">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-sm text-gray-600 mb-2">最高价格</label>
+                            <input type="number" id="budget-max" class="w-full px-4 py-3 bg-gray-100 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light" placeholder="200" value="200">
+                        </div>
+                    </div>
+                    <button onclick="applyBudget()" class="w-full btn-gradient text-white font-bold py-4 rounded-xl">
+                        确认
+                    </button>
+                </div>
+            `;
+            GiftApp.utils.showModal(modalContent);
+        }
+
+        function applyBudget() {
+            const min = document.getElementById('budget-min').value || '0';
+            const max = document.getElementById('budget-max').value || '200';
+            const input = document.getElementById('gift-input');
+            input.value += ` 预算${min}-${max}元`;
+            GiftApp.state.currentInputText = input.value;
+            GiftApp.utils.hideModal();
+        }
+
+function openStyleModal() {
+    const modalContent = `
+        <div>
+            <h2 class="text-xl font-bold text-gray-900 mb-4">选择风格</h2>
+            <div class="flex flex-wrap gap-2 mb-4">
+                ${['实用', '创意', '文艺', '高档'].map(style => `
+                    <button onclick="applyStyle('${style}')" class="px-4 py-2 bg-gray-100 rounded-full">${style}</button>
+                `).join('')}
+            </div>
+            <div class="mt-4">
+                <label class="block text-sm text-gray-600 mb-2">自定义风格</label>
+                <input type="text" id="custom-style-input" class="w-full px-4 py-3 bg-gray-100 rounded-xl" placeholder="输入自定义风格，如：简约、复古...">
+            </div>
+            <button onclick="applyCustomStyleFromInput()" class="w-full btn-gradient font-bold py-3 rounded-xl mt-4">应用自定义风格</button>
+        </div>
+    `;
+    GiftApp.utils.showModal(modalContent);
+}
+       
+                
+
+        function applyCustomStyleFromInput() {
+            const customStyle = document.getElementById('custom-style-input')?.value.trim();
+            if (customStyle) {
+                applyStyle(customStyle);
+                GiftApp.utils.hideModal();
+            } else {
+                GiftApp.utils.showToast('请输入自定义风格');
+            }
+        }
+             
+
+       
+function openOccasionModal() {
+    const modalContent = `
+        <div>
+            <h2 class="text-xl font-bold text-gray-900 mb-4">选择场合</h2>
+            <div class="flex flex-wrap gap-2 mb-4">
+                ${['生日', '纪念日', '感谢', '日常'].map(occasion => `
+                    <button onclick="applyOccasion('${occasion}')" class="px-4 py-2 bg-gray-100 rounded-full">${occasion}</button>
+                `).join('')}
+            </div>
+            <div class="mt-4">
+                <label class="block text-sm text-gray-600 mb-2">自定义场合</label>
+                <input type="text" id="custom-occasion-input" class="w-full px-4 py-3 bg-gray-100 rounded-xl" placeholder="输入自定义场合，如：乔迁、毕业...">
+            </div>
+            <button onclick="applyCustomOccasionFromInput()" class="w-full btn-gradient font-bold py-3 rounded-xl mt-4">应用自定义场合</button>
+        </div>
+    `;
+    GiftApp.utils.showModal(modalContent);
+}
+               
+
+        function applyCustomOccasionFromInput() {
+            const customOccasion = document.getElementById('custom-occasion-input')?.value.trim();
+            if (customOccasion) {
+                applyOccasion(customOccasion);
+                GiftApp.utils.hideModal();
+            } else {
+                GiftApp.utils.showToast('请输入自定义场合');
+            }
+        }
+                   
+function applyStyle(style) {
+            const input = document.getElementById('gift-input');
+            if (input) {
+                input.value += ` 风格:${style}`;
+                GiftApp.state.currentInputText = input.value;
+            }
+            GiftApp.utils.hideModal();
+        }
+
+        function applyOccasion(occasion) {
+            const input = document.getElementById('gift-input');
+            if (input) {
+                input.value += ` 场合:${occasion}`;
+                GiftApp.state.currentInputText = input.value;
+            }
+            GiftApp.utils.hideModal();
+        }
+        function openRecipientModal() {
+            const recipients = GiftApp.storage.getRecipients();
+
+            if (recipients.length === 0) {
+                GiftApp.utils.hideModal();
+                openAddRecipientModal();
+                return;
+            }
+
+            const modalContent = `
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">选择收礼人</h2>
+                    <div class="space-y-2 max-h-60 overflow-y-auto">
+                        ${recipients.map(r => `
+                            <button onclick="applyRecipient('${r.id}')" class="w-full flex items-center gap-3 p-3 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-light to-primary flex items-center justify-center text-white font-bold">
+                                    ${r.name.charAt(0)}
+                                </div>
+                                <div class="text-left">
+                                    <div class="font-bold text-gray-900">${r.name}</div>
+                                    <div class="text-sm text-gray-500">${r.relationship}</div>
+                                </div>
+                            </button>
+                        `).join('')}
+                    </div>
+                    <button onclick="openAddRecipientModal()" class="w-full btn-gradient text-white font-bold py-4 rounded-xl mt-4">
+                        + 新建收礼人
+                    </button>
+                </div>
+            `;
+            GiftApp.utils.showModal(modalContent);
+        }
+
+        function applyRecipient(recipientId) {
+            const recipients = GiftApp.storage.getRecipients();
+            const recipient = recipients.find(r => r.id === recipientId);
+            if (recipient) {
+                const input = document.getElementById('gift-input');
+                input.value += ` 送给${recipient.name}`;
+                GiftApp.state.currentInputText = input.value;
+                GiftApp.state.selectedRecipientId = recipientId;
+            }
+            GiftApp.utils.hideModal();
+        }
+
+        // ========================================
+        // 新建收礼人
+        // ========================================
+        function openAddRecipientModal() {
+            const settings = GiftApp.storage.getSettings();
+            const recipients = GiftApp.storage.getRecipients();
+
+            // 会员限制检查
+            if (!settings.isMember && recipients.length >= 3) {
+                const modalContent = `
+                    <div class="text-center">
+                        <div class="text-4xl mb-4">👑</div>
+                        <h2 class="text-xl font-bold text-gray-900 mb-2">升级会员解锁无限档案</h2>
+                        <p class="text-gray-600 mb-6">会员特权：无限档案、更多推荐</p>
+                        <div class="space-y-2 mb-6 text-left">
+                            <div class="flex justify-between px-4 py-3 bg-gray-100 rounded-xl">
+                                <span class="font-medium">首月</span>
+                                <span class="font-bold text-primary">¥5.5</span>
+                            </div>
+                            <div class="flex justify-between px-4 py-3 bg-gray-100 rounded-xl">
+                                <span class="font-medium">次月</span>
+                                <span class="font-bold text-primary">¥9.9</span>
+                            </div>
+                            <div class="flex justify-between px-4 py-3 bg-gray-100 rounded-xl">
+                                <span class="font-medium">包年</span>
+                                <span class="font-bold text-primary">¥29</span>
+                            </div>
+                        </div>
+                        <button onclick="GiftApp.utils.hideModal()" class="w-full btn-gradient text-white font-bold py-4 rounded-xl">
+                            暂不升级
+                        </button>
+                    </div>
+                `;
+                GiftApp.utils.showModal(modalContent);
+                return;
+            }
+
+            const modalContent = `
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">新建收礼人</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-2">昵称 *</label>
+                            <input type="text" id="recipient-name" class="w-full px-4 py-3 bg-gray-100 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light" placeholder="如：妈妈、小明">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-2">关系 *</label>
+                            <select id="recipient-relationship" class="w-full px-4 py-3 bg-gray-100 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light">
+                                <option value="">请选择关系</option>
+                                <option value="爱人">爱人</option>
+                                <option value="亲人">亲人</option>
+                                <option value="朋友">朋友</option>
+                                <option value="前辈">前辈</option>
+                                <option value="同事">同事</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-2">生日（可选）</label>
+                            <input type="date" id="recipient-birthday" class="w-full px-4 py-3 bg-gray-100 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-2">纪念日（可选）</label>
+                            <input type="date" id="recipient-anniversary" class="w-full px-4 py-3 bg-gray-100 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-2">备注（可选）</label>
+                            <textarea id="recipient-memo" class="w-full px-4 py-3 bg-gray-100 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light resize-none" rows="2" placeholder="如：喜欢花、生日在夏天"></textarea>
+                        </div>
+                    </div>
+                    <button onclick="saveRecipient()" class="w-full btn-gradient text-white font-bold py-4 rounded-xl mt-4">
+                        保存
+                    </button>
+                </div>
+            `;
+            GiftApp.utils.showModal(modalContent);
+        }
+
+        function saveRecipient() {
+            const name = document.getElementById('recipient-name').value.trim();
+            const relationship = document.getElementById('recipient-relationship').value;
+            const birthday = document.getElementById('recipient-birthday').value;
+            const anniversary = document.getElementById('recipient-anniversary').value;
+            const memo = document.getElementById('recipient-memo').value.trim();
+
+            if (!name || !relationship) {
+                GiftApp.utils.showToast('请填写昵称和关系');
+                return;
+            }
+
+            const recipient = {
+                id: GiftApp.utils.generateId(),
+                name,
+                relationship,
+                birthday: birthday || undefined,
+                anniversary: anniversary || undefined,
+                memo: memo || undefined,
+                createdAt: Date.now()
+            };
+
+            GiftApp.storage.saveRecipient(recipient);
+            GiftApp.utils.hideModal();
+            GiftApp.utils.showToast('保存成功');
+
+            // 如果是在首页，刷新页面
+            if (GiftApp.state.currentPage === 'home' || GiftApp.state.currentPage === 'archive') {
+                renderPage(GiftApp.state.currentPage);
+            }
+        }
+
+        // ========================================
+        // 档案页渲染
+        // ========================================
+        function renderArchivePage() {
+            const recipients = GiftApp.storage.getRecipients();
+            const settings = GiftApp.storage.getSettings();
+
+            // 检查未反馈的礼物记录
+            const allRecords = GiftApp.storage.getGiftRecords();
+            const unfeedbackedRecords = allRecords.filter(r => {
+                const daysSinceCreation = (Date.now() - r.createdAt) / (1000 * 60 * 60 * 24);
+                return daysSinceCreation > 7 && !r.feedback;
+            });
+
+            return `
+                <div class="min-h-screen pb-4 fade-in">
+                    <!-- 顶部 -->
+                    <div class="bg-gradient-to-r from-primary to-primary-light px-6 py-8 rounded-b-3xl">
+                        <h1 class="text-white text-2xl font-bold mb-2">送礼档案</h1>
+                        <p class="text-white/80 text-sm">用心记录每一份心意</p>
+                    </div>
+
+                    <!-- 提醒横幅 -->
+                    ${unfeedbackedRecords.length > 0 ? `
+                        <div class="mx-6 mt-4 px-4 py-3 bg-orange-50 border border-orange-200 rounded-xl flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-orange-500">🔔</span>
+                                <span class="text-sm text-orange-700">有 ${unfeedbackedRecords.length} 份礼物未记录反馈</span>
+                            </div>
+                            <button onclick="scrollToFirstUnfeedbacked()" class="text-sm text-orange-600 font-medium">点此补充</button>
+                        </div>
+                    ` : ''}
+
+                    <!-- 收礼人列表 -->
+                    <div class="px-6 mt-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-gray-900">收礼人列表</h2>
+                            <div class="flex gap-2">
+                                <button onclick="openCalendarModal()" class="p-2 bg-white rounded-full card-shadow">
+                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                </button>
+                                <button
+                                    onclick="openAddRecipientModal()"
+                                    class="p-2 bg-white rounded-full card-shadow ${!settings.isMember && recipients.length >= 3 ? 'opacity-50 cursor-not-allowed' : ''}"
+                                    ${!settings.isMember && recipients.length >= 3 ? 'disabled' : ''}
+                                >
+                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        ${recipients.length === 0 ? `
+                            <div class="text-center py-12">
+                                <div class="text-4xl mb-4">👥</div>
+                                <p class="text-gray-500 mb-4">还没有收礼人档案</p>
+                                <button onclick="openAddRecipientModal()" class="btn-gradient text-white font-bold px-8 py-3 rounded-xl">
+                                    + 新建收礼人
+                                </button>
+                            </div>
+                        ` : `
+                            <div class="space-y-3">
+                                ${recipients.map(r => {
+                                    const records = allRecords.filter(record => record.recipientId === r.id);
+                                    const birthdayDays = GiftApp.utils.calculateDaysUntil(r.birthday);
+                                    const anniversaryDays = GiftApp.utils.calculateDaysUntil(r.anniversary);
+
+                                    return `
+                                        <button onclick="openRecipientDetail('${r.id}')" class="w-full bg-white rounded-2xl p-4 card-shadow text-left">
+                                            <div class="flex items-center gap-4">
+                                                <div class="w-14 h-14 rounded-full bg-gradient-to-br from-primary-light to-primary flex items-center justify-center text-white text-xl font-bold">
+                                                    ${r.name.charAt(0)}
+                                                </div>
+                                                <div class="flex-1">
+                                                    <div class="flex items-center gap-2">
+                                                        <h3 class="font-bold text-gray-900">${r.name}</h3>
+                                                        <span class="px-2 py-0.5 bg-gray-100 rounded-full text-xs text-gray-600">${r.relationship}</span>
+                                                    </div>
+                                                    <p class="text-sm text-gray-500 mt-1">已送 ${records.length} 份礼物</p>
+                                                    ${birthdayDays !== null && birthdayDays <= 30 ? `
+                                                        <p class="text-xs text-primary mt-1">距离生日还有 ${birthdayDays} 天</p>
+                                                    ` : ''}
+                                                    ${anniversaryDays !== null && anniversaryDays <= 30 ? `
+                                                        <p class="text-xs text-primary mt-1">距离纪念日还有 ${anniversaryDays} 天</p>
+                                                    ` : ''}
+                                                </div>
+                                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                                </svg>
+                                            </div>
+                                        </button>
+                                    `;
+                                }).join('')}
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 打开日历 Modal
+        function openCalendarModal() {
+            const recipients = GiftApp.storage.getRecipients();
+            const today = new Date();
+            const currentMonth = today.getMonth();
+            const currentYear = today.getFullYear();
+
+            // 获取当前月份所有有生日或纪念日的日期
+            const eventDates = {};
+            recipients.forEach(r => {
+                if (r.birthday) {
+                    const date = GiftApp.utils.extractMonthDay(r.birthday);
+                    if (date.month === currentMonth + 1) {
+                        const key = date.day;
+                        if (!eventDates[key]) eventDates[key] = [];
+                        eventDates[key].push({ name: r.name, type: '生日' });
+                    }
+                }
+                if (r.anniversary) {
+                    const date = GiftApp.utils.extractMonthDay(r.anniversary);
+                    if (date.month === currentMonth + 1) {
+                        const key = date.day;
+                        if (!eventDates[key]) eventDates[key] = [];
+                        eventDates[key].push({ name: r.name, type: '纪念日' });
+                    }
+                }
+            });
+
+            // 生成日历
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+
+            const calendarDays = [];
+            for (let i = 0; i < firstDay; i++) {
+                calendarDays.push('<div class="h-10"></div>');
+            }
+            for (let day = 1; day <= daysInMonth; day++) {
+                const hasEvent = eventDates[day];
+                const isToday = day === today.getDate();
+                calendarDays.push(`
+                    <div
+                        class="h-10 flex flex-col items-center justify-center rounded-lg cursor-pointer ${isToday ? 'bg-primary text-white' : hasEvent ? 'bg-orange-100 text-orange-600' : 'hover:bg-gray-100'}"
+                        onclick="showDayEvents(${day})"
+                    >
+                        <span class="text-sm">${day}</span>
+                        ${hasEvent ? '<span class="w-1.5 h-1.5 rounded-full bg-orange-500 mt-0.5"></span>' : ''}
+                    </div>
+                `);
+            }
+
+            const modalContent = `
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4 text-center">${currentYear}年${currentMonth + 1}月</h2>
+                    <div class="grid grid-cols-7 gap-1 mb-2">
+                        ${['日', '一', '二', '三', '四', '五', '六'].map(d => `<div class="text-center text-xs text-gray-500 py-2">${d}</div>`).join('')}
+                    </div>
+                    <div class="grid grid-cols-7 gap-1">
+                        ${calendarDays.join('')}
+                    </div>
+                </div>
+            `;
+            GiftApp.utils.showModal(modalContent);
+        }
+
+        // 显示某天的事件
+        function showDayEvents(day) {
+            const recipients = GiftApp.storage.getRecipients();
+            const today = new Date();
+            const currentMonth = today.getMonth();
+            const events = [];
+
+            recipients.forEach(r => {
+                if (r.birthday) {
+                    const date = GiftApp.utils.extractMonthDay(r.birthday);
+                    if (date.month === currentMonth + 1 && date.day === day) {
+                        events.push({ name: r.name, type: '生日', id: r.id });
+                    }
+                }
+                if (r.anniversary) {
+                    const date = GiftApp.utils.extractMonthDay(r.anniversary);
+                    if (date.month === currentMonth + 1 && date.day === day) {
+                        events.push({ name: r.name, type: '纪念日', id: r.id });
+                    }
+                }
+            });
+
+            if (events.length === 0) {
+                GiftApp.utils.hideModal();
+                return;
+            }
+
+            const modalContent = `
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">${currentMonth + 1}月${day}日</h2>
+                    <div class="space-y-3">
+                        ${events.map(e => `
+                            <button onclick="openRecipientDetail('${e.id}')" class="w-full flex items-center gap-3 p-3 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-light to-primary flex items-center justify-center text-white font-bold">
+                                    ${e.name.charAt(0)}
+                                </div>
+                                <div class="text-left">
+                                    <div class="font-bold text-gray-900">${e.name}</div>
+                                    <div class="text-sm text-gray-500">${e.type}</div>
+                                </div>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            GiftApp.utils.showModal(modalContent);
+        }
+
+        // 打开收礼人详情
+        function openRecipientDetail(recipientId) {
+            GiftApp.state.selectedRecipientId = recipientId;
+            navigateTo('recipient-detail');
+        }
+
+        // 收礼人详情页
+        function renderRecipientDetailPage() {
+            const recipient = GiftApp.storage.getRecipients().find(r => r.id === GiftApp.state.selectedRecipientId);
+            if (!recipient) {
+                navigateTo('archive');
+                return '';
+            }
+
+            const records = GiftApp.storage.getGiftRecords(recipient.id);
+            const birthdayDays = GiftApp.utils.calculateDaysUntil(recipient.birthday);
+            const anniversaryDays = GiftApp.utils.calculateDaysUntil(recipient.anniversary);
+
+            return `
+                <div class="min-h-screen pb-4 fade-in">
+                    <!-- 顶部 -->
+                    <div class="px-6 py-4 flex items-center justify-between">
+                        <button onclick="navigateTo('archive')" class="p-2">
+                            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                        </button>
+                        <h1 class="text-lg font-bold text-gray-900">收礼人详情</h1>
+                        <button onclick="editRecipient()" class="p-2">
+                            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- 收礼人信息 -->
+                    <div class="px-6 mt-4">
+                        <div class="bg-white rounded-2xl p-6 card-shadow text-center">
+                            <div class="w-20 h-20 rounded-full bg-gradient-to-br from-primary-light to-primary flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
+                                ${recipient.name.charAt(0)}
+                            </div>
+                            <h2 class="text-2xl font-bold text-gray-900 mb-1">${recipient.name}</h2>
+                            <p class="text-gray-500">${recipient.relationship}</p>
+                            ${recipient.memo ? `<p class="text-sm text-gray-600 mt-2">${recipient.memo}</p>` : ''}
+                        </div>
+                    </div>
+
+                    <!-- 重要日期提醒 -->
+                    ${(birthdayDays !== null && birthdayDays <= 30) || (anniversaryDays !== null && anniversaryDays <= 30) ? `
+                        <div class="px-6 mt-4">
+                            ${birthdayDays !== null && birthdayDays <= 30 ? `
+                                <div class="bg-gradient-to-r from-primary-light to-primary rounded-2xl p-4 text-white flex items-center justify-between">
+                                    <div>
+                                        <p class="text-white/80 text-sm">距离生日还有</p>
+                                        <p class="text-2xl font-bold">${birthdayDays} 天</p>
+                                    </div>
+                                    <button onclick="recommendForBirthday()" class="px-4 py-2 bg-white text-primary font-bold rounded-xl text-sm">
+                                        推荐礼物
+                                    </button>
+                                </div>
+                            ` : ''}
+                            ${anniversaryDays !== null && anniversaryDays <= 30 ? `
+                                <div class="bg-gradient-to-r from-primary-light to-primary rounded-2xl p-4 text-white flex items-center justify-between mt-3">
+                                    <div>
+                                        <p class="text-white/80 text-sm">距离纪念日还有</p>
+                                        <p class="text-2xl font-bold">${anniversaryDays} 天</p>
+                                    </div>
+                                    <button onclick="recommendForAnniversary()" class="px-4 py-2 bg-white text-primary font-bold rounded-xl text-sm">
+                                        推荐礼物
+                                    </button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+
+                    <!-- 基本信息编辑 -->
+                    <div class="px-6 mt-6">
+                        <h3 class="font-bold text-gray-900 mb-3">基本信息</h3>
+                        <div class="bg-white rounded-2xl p-4 card-shadow space-y-3">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">昵称</span>
+                                <span class="text-gray-900 font-medium">${recipient.name}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">关系</span>
+                                <span class="text-gray-900 font-medium">${recipient.relationship}</span>
+                            </div>
+                            ${recipient.birthday ? `
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500">生日</span>
+                                    <span class="text-gray-900 font-medium">${GiftApp.utils.formatDate(recipient.birthday)}</span>
+                                </div>
+                            ` : ''}
+                            ${recipient.anniversary ? `
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500">纪念日</span>
+                                    <span class="text-gray-900 font-medium">${GiftApp.utils.formatDate(recipient.anniversary)}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <!-- 历史礼物 -->
+                    <div class="px-6 mt-6">
+                        <h3 class="font-bold text-gray-900 mb-3">历史礼物</h3>
+                        ${records.length === 0 ? `
+                            <div class="text-center py-8 text-gray-500">
+                                还没有送礼记录
+                            </div>
+                        ` : `
+                            <div class="space-y-3">
+                                ${records.map((record, index) => `
+                                    <div id="record-${record.id}" class="bg-white rounded-2xl p-4 card-shadow">
+                                        <div class="flex items-start justify-between">
+                                            <div class="flex-1">
+                                                <h4 class="font-bold text-gray-900">${record.giftName}</h4>
+                                                <p class="text-sm text-gray-500 mt-1">${new Date(record.createdAt).toLocaleDateString()}</p>
+                                                ${record.feedback ? `
+                                                    <div class="mt-2 flex items-center gap-2">
+                                                        <span class="text-xl">${record.feedback === 'good' ? '😊' : record.feedback === 'neutral' ? '😐' : '😞'}</span>
+                                                        ${record.comment ? `<span class="text-sm text-gray-600">${record.comment}</span>` : ''}
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                            <button onclick="editFeedback('${record.id}')" class="px-3 py-1.5 bg-gray-100 rounded-lg text-sm text-gray-600">
+                                                ${record.feedback ? '编辑反馈' : '填写反馈'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `}
+                    </div>
+
+                    <!-- 底部按钮 -->
+                    <div class="px-6 mt-6">
+                        <button onclick="recommendForRecipient()" class="w-full btn-gradient text-white font-bold py-4 rounded-xl">
+                            为TA推荐新礼物
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 为生日推荐
+        function recommendForBirthday() {
+            const recipient = GiftApp.storage.getRecipients().find(r => r.id === GiftApp.state.selectedRecipientId);
+            GiftApp.state.currentInputText = `送给${recipient.name} 生日礼物`;
+            GiftApp.state.selectedRecipientId = recipient.id;
+            navigateTo('home');
+        }
+
+        // 为纪念日推荐
+        function recommendForAnniversary() {
+            const recipient = GiftApp.storage.getRecipients().find(r => r.id === GiftApp.state.selectedRecipientId);
+            GiftApp.state.currentInputText = `送给${recipient.name} 纪念日礼物`;
+            GiftApp.state.selectedRecipientId = recipient.id;
+            navigateTo('home');
+        }
+
+        // 为收礼人推荐
+        function recommendForRecipient() {
+            const recipient = GiftApp.storage.getRecipients().find(r => r.id === GiftApp.state.selectedRecipientId);
+            GiftApp.state.currentInputText = `送给${recipient.name}`;
+            GiftApp.state.selectedRecipientId = recipient.id;
+            navigateTo('home');
+        }
+
+        // 编辑收礼人
+        function editRecipient() {
+            const recipient = GiftApp.storage.getRecipients().find(r => r.id === GiftApp.state.selectedRecipientId);
+            if (!recipient) return;
+
+            const modalContent = `
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">编辑收礼人</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-2">昵称 *</label>
+                            <input type="text" id="edit-recipient-name" class="w-full px-4 py-3 bg-gray-100 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light" value="${recipient.name}">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-2">关系 *</label>
+                            <select id="edit-recipient-relationship" class="w-full px-4 py-3 bg-gray-100 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light">
+                                <option value="爱人" ${recipient.relationship === '爱人' ? 'selected' : ''}>爱人</option>
+                                <option value="亲人" ${recipient.relationship === '亲人' ? 'selected' : ''}>亲人</option>
+                                <option value="朋友" ${recipient.relationship === '朋友' ? 'selected' : ''}>朋友</option>
+                                <option value="前辈" ${recipient.relationship === '前辈' ? 'selected' : ''}>前辈</option>
+                                <option value="同事" ${recipient.relationship === '同事' ? 'selected' : ''}>同事</option>
+                                <option value="其他" ${recipient.relationship === '其他' ? 'selected' : ''}>其他</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-2">生日（可选）</label>
+                            <input type="date" id="edit-recipient-birthday" class="w-full px-4 py-3 bg-gray-100 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light" value="${recipient.birthday || ''}">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-2">纪念日（可选）</label>
+                            <input type="date" id="edit-recipient-anniversary" class="w-full px-4 py-3 bg-gray-100 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light" value="${recipient.anniversary || ''}">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-2">备注（可选）</label>
+                            <textarea id="edit-recipient-memo" class="w-full px-4 py-3 bg-gray-100 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light resize-none" rows="2">${recipient.memo || ''}</textarea>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 mt-4">
+                        <button onclick="deleteRecipient()" class="flex-1 bg-red-50 text-red-600 font-bold py-4 rounded-xl">
+                            删除
+                        </button>
+                        <button onclick="updateRecipient()" class="flex-1 btn-gradient text-white font-bold py-4 rounded-xl">
+                            保存
+                        </button>
+                    </div>
+                </div>
+            `;
+            GiftApp.utils.showModal(modalContent);
+        }
+
+        // 更新收礼人
+        function updateRecipient() {
+            const recipient = GiftApp.storage.getRecipients().find(r => r.id === GiftApp.state.selectedRecipientId);
+            if (!recipient) return;
+
+            recipient.name = document.getElementById('edit-recipient-name').value.trim();
+            recipient.relationship = document.getElementById('edit-recipient-relationship').value;
+            recipient.birthday = document.getElementById('edit-recipient-birthday').value || undefined;
+            recipient.anniversary = document.getElementById('edit-recipient-anniversary').value || undefined;
+            recipient.memo = document.getElementById('edit-recipient-memo').value.trim() || undefined;
+
+            GiftApp.storage.saveRecipient(recipient);
+            GiftApp.utils.hideModal();
+            GiftApp.utils.showToast('保存成功');
+            renderPage('recipient-detail');
+        }
+
+        // 删除收礼人
+        function deleteRecipient() {
+            if (!confirm('确定要删除这个收礼人吗？此操作不可恢复。')) return;
+
+            GiftApp.storage.deleteRecipient(GiftApp.state.selectedRecipientId);
+            GiftApp.utils.hideModal();
+            GiftApp.utils.showToast('已删除');
+            navigateTo('archive');
+        }
+
+        // 编辑反馈
+        function editFeedback(recordId) {
+            const record = GiftApp.storage.getGiftRecords().find(r => r.id === recordId);
+            if (!record) return;
+
+            const modalContent = `
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">${record.giftName}</h2>
+                    <div class="text-center mb-4">
+                        <p class="text-gray-600 text-sm mb-3">TA收到礼物后的反应如何？</p>
+                        <div class="flex gap-3 justify-center">
+                            <button onclick="selectFeedbackForEdit('good')" class="feedback-edit-btn w-14 h-14 rounded-full ${record.feedback === 'good' ? 'bg-green-100 ring-2 ring-green-500' : 'bg-gray-100'} hover:bg-green-100 flex items-center justify-center text-2xl transition-all" data-feedback="good">😊</button>
+                            <button onclick="selectFeedbackForEdit('neutral')" class="feedback-edit-btn w-14 h-14 rounded-full ${record.feedback === 'neutral' ? 'bg-gray-200 ring-2 ring-gray-500' : 'bg-gray-100'} hover:bg-gray-200 flex items-center justify-center text-2xl transition-all" data-feedback="neutral">😐</button>
+                            <button onclick="selectFeedbackForEdit('bad')" class="feedback-edit-btn w-14 h-14 rounded-full ${record.feedback === 'bad' ? 'bg-red-100 ring-2 ring-red-500' : 'bg-gray-100'} hover:bg-red-100 flex items-center justify-center text-2xl transition-all" data-feedback="bad">😞</button>
+                        </div>
+                        <input type="hidden" id="edit-feedback-value" value="${record.feedback || ''}">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm text-gray-600 mb-2">备注（可选）</label>
+                        <textarea id="edit-feedback-comment" class="w-full px-4 py-3 bg-gray-100 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-light resize-none" rows="2" placeholder="记录一下反馈...">${record.comment || ''}</textarea>
+                    </div>
+                    <button onclick="saveFeedback('${recordId}')" class="w-full btn-gradient text-white font-bold py-4 rounded-xl">
+                        保存
+                    </button>
+                </div>
+            `;
+            GiftApp.utils.showModal(modalContent);
+        }
+
+        function selectFeedbackForEdit(feedback) {
+            document.querySelectorAll('.feedback-edit-btn').forEach(btn => {
+                btn.classList.remove('ring-2', 'ring-green-500', 'ring-gray-500', 'ring-red-500');
+                if (feedback === 'good') btn.classList.remove('bg-green-100');
+                if (feedback === 'neutral') btn.classList.remove('bg-gray-200');
+                if (feedback === 'bad') btn.classList.remove('bg-red-100');
+            });
+
+            const selectedBtn = document.querySelector(`[data-feedback="${feedback}"]`);
+            if (feedback === 'good') selectedBtn.classList.add('bg-green-100', 'ring-2', 'ring-green-500');
+            if (feedback === 'neutral') selectedBtn.classList.add('bg-gray-200', 'ring-2', 'ring-gray-500');
+            if (feedback === 'bad') selectedBtn.classList.add('bg-red-100', 'ring-2', 'ring-red-500');
+
+            document.getElementById('edit-feedback-value').value = feedback;
+        }
+
+        function saveFeedback(recordId) {
+            const feedback = document.getElementById('edit-feedback-value').value;
+            const comment = document.getElementById('edit-feedback-comment').value.trim();
+
+            GiftApp.storage.updateGiftFeedback(recordId, feedback || null, comment || undefined);
+            GiftApp.utils.hideModal();
+            GiftApp.utils.showToast('反馈已保存');
+            renderPage('recipient-detail');
+        }
+
+        // 滚动到第一个未反馈的记录
+        function scrollToFirstUnfeedbacked() {
+            const allRecords = GiftApp.storage.getGiftRecords();
+            const unfeedbackedRecord = allRecords.find(r => {
+                const daysSinceCreation = (Date.now() - r.createdAt) / (1000 * 60 * 60 * 24);
+                return daysSinceCreation > 7 && !r.feedback;
+            });
+
+            if (unfeedbackedRecord) {
+                const recipient = GiftApp.storage.getRecipients().find(r => r.id === unfeedbackedRecord.recipientId);
+                if (recipient) {
+                    openRecipientDetail(recipient.id);
+
+                    // 等待页面渲染后滚动到对应记录
+                    setTimeout(() => {
+                        const recordElement = document.getElementById(`record-${unfeedbackedRecord.id}`);
+                        if (recordElement) {
+                            recordElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            recordElement.classList.add('ring-2', 'ring-orange-500');
+                            setTimeout(() => {
+                                recordElement.classList.remove('ring-2', 'ring-orange-500');
+                            }, 3000);
+                        }
+                    }, 100);
+                }
+            }
+        }
+
+        // ========================================
+        // 逛逛页渲染
+        // ========================================
+        function renderExplorePage() {
+            const rankings = [
+                {
+                    title: '最受欢迎礼物榜',
+                    gifts: [
+                        { name: '小米小爱音箱', count: 1234, rating: '98%', tags: ['男友', '爸爸', '妈妈'] },
+                        { name: '观夏无火香薰', count: 987, rating: '96%', tags: ['女友', '闺蜜'] },
+                        { name: '乐高/积木套装', count: 876, rating: '95%', tags: ['小朋友'] },
+                        { name: '拍立得相机', count: 765, rating: '94%', tags: ['女友', '闺蜜'] },
+                        { name: '颈椎按摩仪', count: 654, rating: '93%', tags: ['爸爸', '妈妈'] }
+                    ]
+                },
+                {
+                    title: '创意礼物推荐榜',
+                    gifts: [
+                        { name: '定制粘土小人', count: 543, rating: '97%', tags: ['女友', '男友'] },
+                        { name: '生日月相图定制手机壳', count: 432, rating: '96%', tags: ['男友', '女友'] },
+                        { name: '照片打印机', count: 321, rating: '95%', tags: ['男友', '女友'] },
+                        { name: '艺术家作品拼图', count: 210, rating: '94%', tags: ['男友', '闺蜜'] },
+                        { name: '定制姓名印章', count: 198, rating: '93%', tags: ['领导', '朋友'] }
+                    ]
+                },
+                {
+                    title: '实用生活好物榜',
+                    gifts: [
+                        { name: '膳魔师保温杯', count: 2345, rating: '99%', tags: ['男友', '女友', '爸爸', '妈妈'] },
+                        { name: '充电宝', count: 2134, rating: '98%', tags: ['男友', '女友'] },
+                        { name: '小风扇', count: 1987, rating: '97%', tags: ['女友', '闺蜜'] },
+                        { name: '蒸汽眼罩', count: 1876, rating: '96%', tags: ['男友', '妈妈'] },
+                        { name: '便携折叠烧水壶', count: 1765, rating: '95%', tags: ['男友'] }
+                    ]
+                }
+            ];
+
+            return `
+                <div class="min-h-screen pb-4 fade-in">
+                    <!-- 顶部 -->
+                    <div class="bg-gradient-to-r from-primary to-primary-light px-6 py-8 rounded-b-3xl">
+                        <h1 class="text-white text-2xl font-bold mb-2">发现好礼</h1>
+                        <p class="text-white/80 text-sm">精选榜单，灵感不断</p>
+                    </div>
+
+                    <!-- 榜单列表 -->
+                    <div class="px-6 mt-6 space-y-6">
+                        ${rankings.map((ranking, index) => `
+                            <div class="bg-white rounded-2xl p-4 card-shadow">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h2 class="text-lg font-bold text-gray-900">${ranking.title}</h2>
+                                    <div class="px-3 py-1 bg-primary/10 rounded-full text-xs text-primary font-medium">
+                                        TOP 5
+                                    </div>
+                                </div>
+                                <div class="space-y-3">
+                                    ${ranking.gifts.map((gift, giftIndex) => `
+                                        <button
+                                            onclick="exploreGift('${gift.name}')"
+                                            class="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                                        >
+                                            <div class="w-8 h-8 rounded-full ${giftIndex === 0 ? 'bg-gradient-to-br from-yellow-400 to-orange-500' : 'bg-gray-200'} flex items-center justify-center text-sm font-bold ${giftIndex === 0 ? 'text-white' : 'text-gray-600'}">
+                                                ${giftIndex + 1}
+                                            </div>
+                                            <div class="flex-1 text-left">
+                                                <h3 class="font-bold text-gray-900">${gift.name}</h3>
+                                                <p class="text-xs text-gray-500 mt-0.5">${gift.tags.join(' / ')}</p>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="text-sm font-bold text-primary">${gift.count}</p>
+                                                <p class="text-xs text-gray-500">人选择</p>
+                                            </div>
+                                            <div class="text-right ml-3">
+                                                <p class="text-sm font-bold text-green-600">${gift.rating}</p>
+                                                <p class="text-xs text-gray-500">好评</p>
+                                            </div>
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 探索礼物
+        function exploreGift(giftName) {
+            // 获取第一个收礼人或默认关系
+            const recipients = GiftApp.storage.getRecipients();
+            let defaultRelationship = '朋友';
+            if (recipients.length > 0) {
+                defaultRelationship = recipients[0].relationship;
+            }
+
+            GiftApp.state.currentInputText = `${giftName} 送给${defaultRelationship}`;
+            navigateTo('home');
+        }
+
+        // ========================================
+        // 我的页渲染
+        // ========================================
+        function renderProfilePage() {
+            const recipients = GiftApp.storage.getRecipients();
+            const giftRecords = GiftApp.storage.getGiftRecords();
+            const settings = GiftApp.storage.getSettings();
+
+            return `
+                <div class="min-h-screen pb-4 fade-in">
+                    <!-- 顶部 -->
+                    <div class="bg-gradient-to-r from-primary to-primary-light px-6 py-8 rounded-b-3xl">
+                        <h1 class="text-white text-2xl font-bold mb-2">我的</h1>
+                        <p class="text-white/80 text-sm">管理你的账户和设置</p>
+                    </div>
+
+                    <!-- 统计信息 -->
+                    <div class="px-6 mt-6">
+                        <div class="bg-white rounded-2xl p-6 card-shadow">
+                            <h2 class="text-lg font-bold text-gray-900 mb-4">礼物统计</h2>
+                            <div class="flex gap-4">
+                                <div class="flex-1 text-center p-4 bg-gray-50 rounded-xl">
+                                    <p class="text-3xl font-bold text-primary">${giftRecords.length}</p>
+                                    <p class="text-sm text-gray-600 mt-1">送出礼物</p>
+                                </div>
+                                <div class="flex-1 text-center p-4 bg-gray-50 rounded-xl">
+                                    <p class="text-3xl font-bold text-primary">${recipients.length}</p>
+                                    <p class="text-sm text-gray-600 mt-1">心意档案</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 会员入口 -->
+                    <div class="px-6 mt-6">
+                        <div class="bg-white rounded-2xl p-4 card-shadow">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 rounded-full ${settings.isMember ? 'bg-gradient-to-br from-yellow-400 to-orange-500' : 'bg-gray-100'} flex items-center justify-center text-2xl">
+                                        ${settings.isMember ? '👑' : '🔒'}
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-gray-900">${settings.isMember ? 'VIP会员' : '普通用户'}</p>
+                                        <p class="text-sm text-gray-500">${settings.isMember ? '已解锁全部功能' : '升级解锁无限档案'}</p>
+                                    </div>
+                                </div>
+                                <button onclick="showMembership()" class="px-4 py-2 ${settings.isMember ? 'bg-gray-100 text-gray-700' : 'btn-gradient text-white'} rounded-xl font-medium">
+                                    ${settings.isMember ? '已开通' : '升级'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 设置列表 -->
+                    <div class="px-6 mt-6">
+                        <div class="bg-white rounded-2xl overflow-hidden card-shadow">
+                            <button onclick="showLogin()" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+                                <div class="flex items-center gap-3">
+                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                    </svg>
+                                    <span class="text-gray-900">登录设置</span>
+                                </div>
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                            <button onclick="showFeedback()" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-t border-gray-100">
+                                <div class="flex items-center gap-3">
+                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                                    </svg>
+                                    <span class="text-gray-900">问题反馈</span>
+                                </div>
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                            <button onclick="showPrivacy()" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-t border-gray-100">
+                                <div class="flex items-center gap-3">
+                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                    </svg>
+                                    <span class="text-gray-900">隐私政策</span>
+                                </div>
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 版本号 -->
+                    <div class="px-6 mt-6 text-center">
+                        <p class="text-sm text-gray-400">礼遇·GoodGift v1.0.0</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 显示会员信息
+        function showMembership() {
+            const settings = GiftApp.storage.getSettings();
+
+            if (settings.isMember) {
+                const modalContent = `
+                    <div class="text-center">
+                        <div class="text-4xl mb-4">👑</div>
+                        <h2 class="text-xl font-bold text-gray-900 mb-2">VIP会员</h2>
+                        <p class="text-gray-600 mb-6">您已享受全部会员特权</p>
+                        <div class="space-y-2 mb-6 text-left">
+                            <div class="flex items-center gap-2 text-green-600">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <span>无限档案数量</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-green-600">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <span>更多推荐算法</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-green-600">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <span>优先客服支持</span>
+                            </div>
+                        </div>
+                        <button onclick="GiftApp.utils.hideModal()" class="w-full btn-gradient text-white font-bold py-4 rounded-xl">
+                            关闭
+                        </button>
+                    </div>
+                `;
+                GiftApp.utils.showModal(modalContent);
+            } else {
+                const modalContent = `
+                    <div class="text-center">
+                        <div class="text-4xl mb-4">👑</div>
+                        <h2 class="text-xl font-bold text-gray-900 mb-2">升级会员</h2>
+                        <p class="text-gray-600 mb-6">解锁无限档案，享受更多特权</p>
+                        <div class="space-y-2 mb-6 text-left">
+                            <div class="flex justify-between px-4 py-3 bg-gray-100 rounded-xl">
+                                <span class="font-medium">首月</span>
+                                <span class="font-bold text-primary">¥5.5</span>
+                            </div>
+                            <div class="flex justify-between px-4 py-3 bg-gray-100 rounded-xl">
+                                <span class="font-medium">次月</span>
+                                <span class="font-bold text-primary">¥9.9</span>
+                            </div>
+                            <div class="flex justify-between px-4 py-3 bg-gray-100 rounded-xl">
+                                <span class="font-medium">包年</span>
+                                <span class="font-bold text-primary">¥29</span>
+                            </div>
+                        </div>
+                        <button onclick="simulateUpgrade()" class="w-full btn-gradient text-white font-bold py-4 rounded-xl">
+                            解锁会员
+                        </button>
+                        <button onclick="GiftApp.utils.hideModal()" class="w-full mt-3 py-3 text-gray-600">
+                            暂不升级
+                        </button>
+                    </div>
+                `;
+                GiftApp.utils.showModal(modalContent);
+            }
+        }
+
+        // 模拟升级会员
+        function simulateUpgrade() {
+            const settings = GiftApp.storage.getSettings();
+            settings.isMember = true;
+            GiftApp.storage.saveSettings(settings);
+            GiftApp.utils.hideModal();
+            GiftApp.utils.showToast('会员解锁成功！');
+            renderPage('profile');
+        }
+
+        // 显示登录
+        function showLogin() {
+            GiftApp.utils.showToast('演示版暂不支持登录');
+        }
+
+        // 显示反馈
+        function showFeedback() {
+            const modalContent = `
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">问题反馈</h2>
+                    <p class="text-gray-600 mb-6">请发送邮件至：</p>
+                    <a href="mailto:support@goodgift.com" class="block w-full text-center py-3 bg-primary text-white rounded-xl font-bold">
+                        support@goodgift.com
+                    </a>
+                </div>
+            `;
+            GiftApp.utils.showModal(modalContent);
+        }
+
+        // 显示隐私政策
+        function showPrivacy() {
+            const modalContent = `
+                <div class="max-h-80 overflow-y-auto">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">隐私政策</h2>
+                    <div class="text-sm text-gray-600 space-y-3">
+                        <p>我们重视您的隐私保护。本隐私政策说明我们如何收集、使用、存储和保护您的个人信息。</p>
+                        <p><strong>信息收集</strong>：我们仅收集您主动提供的信息，如收礼人信息、礼物记录等。</p>
+                        <p><strong>信息使用</strong>：我们使用这些信息为您提供个性化推荐和更好的服务体验。</p>
+                        <p><strong>信息存储</strong>：所有数据均存储在您的设备本地，我们不会上传至服务器。</p>
+                        <p><strong>数据安全</strong>：我们采取合理的技术措施保护您的数据安全。</p>
+                        <p><strong>第三方服务</strong>：本应用可能使用第三方服务来提供某些功能。</p>
+                        <p><strong>联系我们</strong>：如有任何隐私问题，请联系 support@goodgift.com</p>
+                    </div>
+                    <button onclick="GiftApp.utils.hideModal()" class="w-full btn-gradient text-white font-bold py-4 rounded-xl mt-6">
+                        关闭
+                    </button>
+                </div>
+            `;
+            GiftApp.utils.showModal(modalContent);
+        }
+
+        // ========================================
+        // 应用启动
+        // ========================================
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
